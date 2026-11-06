@@ -9,7 +9,22 @@ class MainWindowController: NSWindowController {
     private let tabManager = TabManager.shared
     private var toolbar: NSToolbar?
     private var tabBarView: TabBarView?
-    private var containerContentView: NSView?
+    private var dualPaneContainer: DualPaneContainerView?
+    
+    // Dual pane support
+    var isDualPaneMode: Bool = false {
+        didSet {
+            dualPaneContainer?.isDualPaneMode = isDualPaneMode
+        }
+    }
+    private var leftContentViewController: ContentViewController?
+    private var rightContentViewController: ContentViewController?
+    private var activePane: PanePosition = .left
+    
+    enum PanePosition {
+        case left
+        case right
+    }
     
     // MARK: - Initialization
     
@@ -61,12 +76,12 @@ class MainWindowController: NSWindowController {
         tabBar.delegate = self
         tabBar.translatesAutoresizingMaskIntoConstraints = false
         
-        // Create container for content
-        let container = NSView()
-        container.translatesAutoresizingMaskIntoConstraints = false
+        // Create dual pane container
+        let dualPane = DualPaneContainerView()
+        dualPane.translatesAutoresizingMaskIntoConstraints = false
         
         contentView.addSubview(tabBar)
-        contentView.addSubview(container)
+        contentView.addSubview(dualPane)
         
         NSLayoutConstraint.activate([
             tabBar.topAnchor.constraint(equalTo: contentView.topAnchor),
@@ -74,14 +89,14 @@ class MainWindowController: NSWindowController {
             tabBar.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             tabBar.heightAnchor.constraint(equalToConstant: 32),
             
-            container.topAnchor.constraint(equalTo: tabBar.bottomAnchor),
-            container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            container.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            container.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+            dualPane.topAnchor.constraint(equalTo: tabBar.bottomAnchor),
+            dualPane.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            dualPane.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            dualPane.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
         ])
         
         self.tabBarView = tabBar
-        self.containerContentView = container
+        self.dualPaneContainer = dualPane
         
         // Update tab bar
         updateTabBar()
@@ -111,26 +126,21 @@ class MainWindowController: NSWindowController {
     }
     
     private func updateActiveTab() {
-        guard let container = containerContentView,
+        guard let dualPane = dualPaneContainer,
               let activeTab = tabManager.activeTab else { return }
         
-        // Remove old content view controller
-        contentViewController?.view.removeFromSuperview()
+        // Create new left content view controller for active tab
+        let leftVC = ContentViewController(directoryState: activeTab.directoryState)
+        leftContentViewController = leftVC
+        dualPane.leftContentView = leftVC.view
         
-        // Create new content view controller for active tab
-        let contentVC = ContentViewController(directoryState: activeTab.directoryState)
-        contentViewController = contentVC
-        
-        // Add to container
-        contentVC.view.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(contentVC.view)
-        
-        NSLayoutConstraint.activate([
-            contentVC.view.topAnchor.constraint(equalTo: container.topAnchor),
-            contentVC.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            contentVC.view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            contentVC.view.bottomAnchor.constraint(equalTo: container.bottomAnchor)
-        ])
+        // Create right content view controller for dual pane mode if needed
+        if isDualPaneMode {
+            let rightDirectoryState = DirectoryState(initialURL: activeTab.directoryState.currentURL)
+            let rightVC = ContentViewController(directoryState: rightDirectoryState)
+            rightContentViewController = rightVC
+            dualPane.rightContentView = rightVC.view
+        }
         
         // Update tab bar
         updateTabBar()
@@ -154,6 +164,22 @@ class MainWindowController: NSWindowController {
     @objc func selectPreviousTab() {
         tabManager.previousTab()
         updateActiveTab()
+    }
+    
+    // MARK: - Dual Pane Mode
+    
+    @objc func toggleDualPaneMode() {
+        isDualPaneMode.toggle()
+        
+        if isDualPaneMode && rightContentViewController == nil {
+            // Create right pane with current directory
+            if let activeTab = tabManager.activeTab {
+                let rightDirectoryState = DirectoryState(initialURL: activeTab.directoryState.currentURL)
+                let rightVC = ContentViewController(directoryState: rightDirectoryState)
+                rightContentViewController = rightVC
+                dualPaneContainer?.rightContentView = rightVC.view
+            }
+        }
     }
     
     // MARK: - Toolbar Actions
@@ -212,9 +238,12 @@ class MainWindowController: NSWindowController {
     }
 
     private func reloadCurrentView() {
-        if let fileVC = contentViewController as? ContentViewController {
-            fileVC.reloadCurrentView()
-            fileVC.updatePathBar()
+        if activePane == .left {
+            leftContentViewController?.reloadCurrentView()
+            leftContentViewController?.updatePathBar()
+        } else {
+            rightContentViewController?.reloadCurrentView()
+            rightContentViewController?.updatePathBar()
         }
     }
 }

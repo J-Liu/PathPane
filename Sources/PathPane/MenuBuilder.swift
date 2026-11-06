@@ -229,6 +229,17 @@ struct MenuBuilder {
 
         viewMenu.addItem(NSMenuItem.separator())
 
+        // Dual pane mode
+        let dualPaneItem = NSMenuItem(
+            title: "Dual Pane Mode",
+            action: #selector(MainWindowController.toggleDualPaneMode),
+            keyEquivalent: "d"
+        )
+        dualPaneItem.keyEquivalentModifierMask = [.shift, .command]
+        viewMenu.addItem(dualPaneItem)
+
+        viewMenu.addItem(NSMenuItem.separator())
+
         viewMenu.addItem(
             NSMenuItem(
                 title: "Go to Folder...",

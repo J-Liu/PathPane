@@ -19,8 +19,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var viewMenuDelegate: ViewMenuDelegate?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        setupMainMenu()
         createMainWindow()
+        setupMainMenu()
     }
 
     private func setupMainMenu() {
@@ -28,7 +28,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.mainMenu = mainMenu
 
         // Set up View menu delegate
-        viewMenuDelegate = ViewMenuDelegate()
+        viewMenuDelegate = ViewMenuDelegate(mainWindowController: windowController)
         if let viewMenuItem = mainMenu.items.first(where: { $0.title == "View" }),
            let viewMenu = viewMenuItem.submenu {
             viewMenu.delegate = viewMenuDelegate
