@@ -18,7 +18,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowController: MainWindowController?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        setupMainMenu()
         createMainWindow()
+    }
+    
+    private func setupMainMenu() {
+        NSApplication.shared.mainMenu = MenuBuilder.buildMainMenu()
     }
     
     private func createMainWindow() {
