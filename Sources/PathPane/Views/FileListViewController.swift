@@ -8,6 +8,8 @@ class FileListViewController: NSViewController {
     // MARK: - Properties
     
     let directoryState: DirectoryState
+    private let settings = SettingsManager.shared
+    private var trackingArea: NSTrackingArea?
     
     // MARK: - UI Elements
     
@@ -54,7 +56,13 @@ class FileListViewController: NSViewController {
         
         setupSubviews()
         setupConstraints()
+        setupTrackingArea()
         loadInitialData()
+    }
+    
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        updateTrackingArea()
     }
     
     // MARK: - Setup
@@ -114,6 +122,33 @@ class FileListViewController: NSViewController {
         }
     }
     
+    private func setupTrackingArea() {
+        let options: NSTrackingArea.Options = [
+            .mouseMoved,
+            .activeInKeyWindow,
+            .inVisibleRect
+        ]
+        
+        trackingArea = NSTrackingArea(
+            rect: NSRect.zero,
+            options: options,
+            owner: tableView,
+            userInfo: nil
+        )
+    }
+    
+    private func updateTrackingArea() {
+        if let area = trackingArea {
+            tableView.removeTrackingArea(area)
+        }
+        
+        if settings.selectionBehavior == .hoverSelect {
+            if let area = trackingArea {
+                tableView.addTrackingArea(area)
+            }
+        }
+    }
+    
     // MARK: - Navigation
     
     private func openSelectedItem() {
@@ -134,6 +169,14 @@ class FileListViewController: NSViewController {
             // Open file with default application
             NSWorkspace.shared.open(item.url)
         }
+    }
+    
+    private func handleSingleClick() {
+        if settings.selectionBehavior == .hoverSelect {
+            // In hover mode, single click opens the item
+            openSelectedItem()
+        }
+        // In click mode, single click just selects (default behavior)
     }
 }
 
@@ -156,6 +199,19 @@ extension FileListViewController {
     @objc private func handleDoubleClick() {
         openSelectedItem()
     }
+    
+    override func mouseMoved(with event: NSEvent) {
+        guard settings.selectionBehavior == .hoverSelect else { return }
+        
+        // Get row under mouse
+        let point = tableView.convert(event.locationInWindow, from: nil)
+        let row = tableView.row(at: point)
+        
+        // Select row if valid
+        if row >= 0 && row < directoryState.items.count {
+            tableView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+        }
+    }
 }
 
 // MARK: - NSTableViewDataSource
@@ -170,6 +226,19 @@ extension FileListViewController: NSTableViewDataSource {
 // MARK: - NSTableViewDelegate
 
 extension FileListViewController: NSTableViewDelegate {
+    
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        // In hover mode, we don't need to do anything special
+        // In click mode, this is just selection
+        if settings.selectionBehavior == .clickSelect {
+            // Handle single click in click mode
+            // For now, selection is handled automatically
+        }
+    }
+    
+    func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
+        return true
+    }
     
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard row < directoryState.items.count else { return nil }
