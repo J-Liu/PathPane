@@ -122,6 +122,12 @@ class FileListViewController: NSViewController {
         }
     }
     
+    // MARK: - Public Methods
+    
+    func reloadData() {
+        tableView.reloadData()
+    }
+    
     private func setupTrackingArea() {
         let options: NSTrackingArea.Options = [
             .mouseMoved,

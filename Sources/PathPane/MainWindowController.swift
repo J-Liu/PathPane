@@ -68,19 +68,30 @@ class MainWindowController: NSWindowController {
     // MARK: - Toolbar Actions
     
     @objc func goBack(_ sender: Any?) {
-        // Will be implemented in next step
+        directoryState.goBack()
+        reloadTableView()
     }
     
     @objc func goForward(_ sender: Any?) {
-        // Will be implemented in next step
+        directoryState.goForward()
+        reloadTableView()
     }
     
     @objc func goUp(_ sender: Any?) {
-        // Will be implemented in next step
+        directoryState.goUp()
+        reloadTableView()
     }
     
     @objc func refresh(_ sender: Any?) {
         directoryState.reload()
+        reloadTableView()
+    }
+    
+    private func reloadTableView() {
+        if let fileVC = contentViewController as? ContentViewController,
+           let listVC = fileVC.fileListViewController {
+            listVC.reloadData()
+        }
     }
 }
 

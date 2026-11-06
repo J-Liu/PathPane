@@ -13,12 +13,30 @@ class DirectoryState {
     
     private(set) var currentURL: URL
     private(set) var items: [FileItem] = []
+    
+    // Navigation history
+    private(set) var history: [URL] = []
+    private(set) var historyIndex: Int = -1
+    
     var showHiddenFiles: Bool = false {
         didSet {
             if oldValue != showHiddenFiles {
                 reload()
             }
         }
+    }
+    
+    // Navigation state
+    var canGoBack: Bool {
+        historyIndex > 0
+    }
+    
+    var canGoForward: Bool {
+        historyIndex < history.count - 1
+    }
+    
+    var canGoUp: Bool {
+        currentURL.path != "/"
     }
     
     // MARK: - Private Properties
@@ -39,9 +57,20 @@ class DirectoryState {
     /// - Parameters:
     ///   - url: Directory URL to load
     ///   - completion: Completion handler called after loading
-    func load(url: URL, completion: LoadCompletion? = nil) {
+    ///   - addToHistory: Whether to add to navigation history (default: true)
+    func load(url: URL, completion: LoadCompletion? = nil, addToHistory: Bool = true) {
         self.loadCompletion = completion
         self.currentURL = url
+        
+        // Add to history if requested
+        if addToHistory {
+            // Remove forward history if navigating to new location
+            if historyIndex < history.count - 1 {
+                history.removeLast(history.count - historyIndex - 1)
+            }
+            history.append(url)
+            historyIndex = history.count - 1
+        }
         
         do {
             items = try fileSystemService.listContents(of: url, showHidden: showHiddenFiles)
@@ -73,5 +102,30 @@ class DirectoryState {
             items = []
             loadCompletion?(.failure(error))
         }
+    }
+    
+    // MARK: - Navigation
+    
+    /// Go back in history
+    func goBack() {
+        guard canGoBack else { return }
+        historyIndex -= 1
+        let url = history[historyIndex]
+        load(url: url, addToHistory: false)
+    }
+    
+    /// Go forward in history
+    func goForward() {
+        guard canGoForward else { return }
+        historyIndex += 1
+        let url = history[historyIndex]
+        load(url: url, addToHistory: false)
+    }
+    
+    /// Go to parent directory
+    func goUp() {
+        guard canGoUp else { return }
+        let parentURL = currentURL.deletingLastPathComponent()
+        load(url: parentURL)
     }
 }

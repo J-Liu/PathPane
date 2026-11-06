@@ -7,7 +7,7 @@ class ContentViewController: NSViewController {
     // MARK: - Properties
     
     private let directoryState: DirectoryState
-    private var fileListViewController: FileListViewController?
+    var fileListViewController: FileListViewController?
     
     // MARK: - Initialization
     
