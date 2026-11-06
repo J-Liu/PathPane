@@ -15,24 +15,15 @@ struct PathPaneApp {
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
-    private var window: NSWindow?
+    private var windowController: MainWindowController?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         createMainWindow()
     }
     
     private func createMainWindow() {
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
-            styleMask: [.titled, .closable, .resizable, .miniaturizable],
-            backing: .buffered,
-            defer: false
-        )
-        
-        window.title = "PathPane"
-        window.center()
-        window.makeKeyAndOrderFront(nil)
-        
-        self.window = window
+        let windowController = MainWindowController()
+        windowController.showWindow()
+        self.windowController = windowController
     }
 }
