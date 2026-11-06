@@ -50,6 +50,9 @@ class MainWindowController: NSWindowController {
         window.titlebarAppearsTransparent = false
         window.titleVisibility = .visible
         
+        // Keep window in memory after closing to allow reopening via dock
+        window.isReleasedWhenClosed = false
+        
         super.init(window: window)
         
         // Setup content view with tab bar

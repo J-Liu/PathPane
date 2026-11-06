@@ -24,6 +24,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupMainMenu()
     }
 
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        // If there are no visible windows, show the main window
+        if !flag {
+            windowController?.showWindow()
+            NSApp.activate(ignoringOtherApps: true)
+        }
+        return true
+    }
+
     private func setupMainMenu() {
         let mainMenu = MenuBuilder.buildMainMenu()
         NSApplication.shared.mainMenu = mainMenu
