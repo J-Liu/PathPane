@@ -88,6 +88,8 @@ class FileListViewController: NSViewController {
         // Set data source and delegate
         tableView.dataSource = self
         tableView.delegate = self
+        tableView.target = self
+        tableView.doubleAction = #selector(handleDoubleClick)
         
         // Add to scroll view
         scrollView.documentView = tableView
@@ -110,6 +112,49 @@ class FileListViewController: NSViewController {
                 self?.tableView.reloadData()
             }
         }
+    }
+    
+    // MARK: - Navigation
+    
+    private func openSelectedItem() {
+        let selectedRow = tableView.selectedRow
+        guard selectedRow >= 0, selectedRow < directoryState.items.count else { return }
+        
+        let item = directoryState.items[selectedRow]
+        
+        if item.isDirectory {
+            // Navigate into directory
+            directoryState.load(url: item.url) { [weak self] result in
+                DispatchQueue.main.async {
+                    self?.tableView.reloadData()
+                    self?.tableView.scrollRowToVisible(0)
+                }
+            }
+        } else {
+            // Open file with default application
+            NSWorkspace.shared.open(item.url)
+        }
+    }
+}
+
+// MARK: - Keyboard Handling
+
+extension FileListViewController {
+    
+    override func keyDown(with event: NSEvent) {
+        // Handle Enter key
+        if event.keyCode == 36 { // Return key
+            openSelectedItem()
+        } else if event.keyCode == 51 { // Delete key
+            // Will be handled later for move to trash
+            super.keyDown(with: event)
+        } else {
+            super.keyDown(with: event)
+        }
+    }
+    
+    @objc private func handleDoubleClick() {
+        openSelectedItem()
     }
 }
 
