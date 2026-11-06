@@ -18,9 +18,10 @@ class DirectoryState {
     private(set) var history: [URL] = []
     private(set) var historyIndex: Int = -1
     
-    var showHiddenFiles: Bool = false {
+    var showHiddenFiles: Bool = SettingsManager.shared.showHiddenFiles {
         didSet {
             if oldValue != showHiddenFiles {
+                SettingsManager.shared.showHiddenFiles = showHiddenFiles
                 reload()
             }
         }

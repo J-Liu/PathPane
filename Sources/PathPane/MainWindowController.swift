@@ -8,7 +8,7 @@ class MainWindowController: NSWindowController {
     
     private let directoryState = DirectoryState()
     private var toolbar: NSToolbar?
-    
+
     // MARK: - Initialization
     
     init() {
@@ -112,7 +112,14 @@ class MainWindowController: NSWindowController {
             fileVC.switchToViewMode(.thumbnail)
         }
     }
-    
+
+    // MARK: - Hidden Files
+
+    @objc func toggleHiddenFiles(_ sender: Any?) {
+        directoryState.showHiddenFiles.toggle()
+        reloadTableView()
+    }
+
     private func reloadTableView() {
         if let fileVC = contentViewController as? ContentViewController {
             fileVC.reloadCurrentView()

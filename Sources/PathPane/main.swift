@@ -16,16 +16,25 @@ struct PathPaneApp {
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowController: MainWindowController?
-    
+    private var viewMenuDelegate: ViewMenuDelegate?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMainMenu()
         createMainWindow()
     }
-    
+
     private func setupMainMenu() {
-        NSApplication.shared.mainMenu = MenuBuilder.buildMainMenu()
+        let mainMenu = MenuBuilder.buildMainMenu()
+        NSApplication.shared.mainMenu = mainMenu
+
+        // Set up View menu delegate
+        viewMenuDelegate = ViewMenuDelegate()
+        if let viewMenuItem = mainMenu.items.first(where: { $0.title == "View" }),
+           let viewMenu = viewMenuItem.submenu {
+            viewMenu.delegate = viewMenuDelegate
+        }
     }
-    
+
     private func createMainWindow() {
         let windowController = MainWindowController()
         windowController.showWindow()

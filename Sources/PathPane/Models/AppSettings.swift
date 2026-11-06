@@ -12,6 +12,7 @@ enum SelectionBehavior: String {
 enum SettingsKey {
     static let selectionBehavior = "selectionBehavior"
     static let viewMode = "viewMode"
+    static let showHiddenFiles = "showHiddenFiles"
 }
 
 // MARK: - Settings Manager
@@ -43,7 +44,7 @@ class SettingsManager {
     }
     
     // MARK: - View Mode
-    
+
     var viewMode: ViewMode {
         get {
             if let rawValue = defaults.string(forKey: SettingsKey.viewMode),
@@ -54,6 +55,17 @@ class SettingsManager {
         }
         set {
             defaults.set(newValue.rawValue, forKey: SettingsKey.viewMode)
+        }
+    }
+
+    // MARK: - Show Hidden Files
+
+    var showHiddenFiles: Bool {
+        get {
+            defaults.bool(forKey: SettingsKey.showHiddenFiles)
+        }
+        set {
+            defaults.set(newValue, forKey: SettingsKey.showHiddenFiles)
         }
     }
 }

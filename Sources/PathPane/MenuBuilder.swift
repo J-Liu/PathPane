@@ -190,17 +190,17 @@ struct MenuBuilder {
     
     private static func buildViewMenu() -> NSMenuItem {
         let viewMenu = NSMenu(title: "View")
-        
-        viewMenu.addItem(
-            NSMenuItem(
-                title: "Show Hidden Files",
-                action: nil,
-                keyEquivalent: "."
-            )
+
+        let showHiddenItem = NSMenuItem(
+            title: "Show Hidden Files",
+            action: #selector(MainWindowController.toggleHiddenFiles),
+            keyEquivalent: "."
         )
-        
+        showHiddenItem.keyEquivalentModifierMask = [.shift, .command]
+        viewMenu.addItem(showHiddenItem)
+
         viewMenu.addItem(NSMenuItem.separator())
-        
+
         viewMenu.addItem(
             NSMenuItem(
                 title: "Go to Folder...",
@@ -208,9 +208,9 @@ struct MenuBuilder {
                 keyEquivalent: "l"
             )
         )
-        
+
         viewMenu.addItem(NSMenuItem.separator())
-        
+
         viewMenu.addItem(
             NSMenuItem(
                 title: "as List",
@@ -218,7 +218,7 @@ struct MenuBuilder {
                 keyEquivalent: "1"
             )
         )
-        
+
         viewMenu.addItem(
             NSMenuItem(
                 title: "as Icons",
@@ -226,7 +226,7 @@ struct MenuBuilder {
                 keyEquivalent: "2"
             )
         )
-        
+
         viewMenu.addItem(
             NSMenuItem(
                 title: "as Thumbnails",
@@ -234,7 +234,7 @@ struct MenuBuilder {
                 keyEquivalent: "3"
             )
         )
-        
+
         let menuItem = NSMenuItem(title: "View", action: nil, keyEquivalent: "")
         menuItem.submenu = viewMenu
         return menuItem
