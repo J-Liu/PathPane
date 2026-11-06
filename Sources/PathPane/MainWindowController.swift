@@ -243,6 +243,46 @@ class MainWindowController: NSWindowController {
         reloadCurrentView()
     }
 
+    // MARK: - Network Connections
+
+    private var connectServerWindowController: ConnectServerWindowController?
+
+    @objc func showConnectServerDialog() {
+        let dialog = ConnectServerWindowController()
+        dialog.onConnect = { [weak self] config in
+            self?.connectToServer(config: config)
+        }
+        dialog.showWindow(nil)
+        connectServerWindowController = dialog
+    }
+
+    private func connectToServer(config: FileSystemConnectionConfig) {
+        Task {
+            do {
+                // Show loading indicator
+                await MainActor.run {
+                    // Could show a progress sheet here
+                }
+
+                // Connect to server
+                let connection = try await NetworkManager.shared.createConnection(config: config)
+
+                // Create new tab with the connected server and its provider
+                await MainActor.run {
+                    tabManager.createNewTab(url: connection.rootURL, provider: connection.provider)
+                    updateActiveTab()
+                }
+            } catch {
+                await MainActor.run {
+                    ErrorHandler.shared.showError(
+                        title: "Connection Failed",
+                        message: "Could not connect to \(config.host): \(error.localizedDescription)"
+                    )
+                }
+            }
+        }
+    }
+
     private func reloadCurrentView() {
         if activePane == .left {
             leftContentViewController?.reloadCurrentView()

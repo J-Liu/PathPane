@@ -30,8 +30,8 @@ class TabManager {
         return tabs[activeTabIndex]
     }
     
-    func createNewTab(url: URL = FileManager.default.homeDirectoryForCurrentUser) {
-        let newTab = Tab(initialURL: url)
+    func createNewTab(url: URL = FileManager.default.homeDirectoryForCurrentUser, provider: FileSystemProvider? = nil) {
+        let newTab = Tab(initialURL: url, provider: provider)
         tabs.append(newTab)
         activeTabIndex = tabs.count - 1
     }

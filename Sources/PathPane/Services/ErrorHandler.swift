@@ -22,6 +22,20 @@ class ErrorHandler {
             alert.runModal()
         }
     }
+
+    func showError(title: String, message: String, in window: NSWindow? = nil) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+
+        if let window = window {
+            alert.beginSheetModal(for: window)
+        } else {
+            alert.runModal()
+        }
+    }
     
     func showPermissionError(for url: URL, in window: NSWindow? = nil) {
         let alert = NSAlert()

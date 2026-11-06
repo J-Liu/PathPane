@@ -105,6 +105,14 @@ struct MenuBuilder {
             )
         )
         
+        fileMenu.addItem(
+            NSMenuItem(
+                title: "Connect to Server...",
+                action: #selector(MainWindowController.showConnectServerDialog),
+                keyEquivalent: "k"
+            )
+        )
+        
         fileMenu.addItem(NSMenuItem.separator())
         
         fileMenu.addItem(

@@ -4,16 +4,16 @@ import Foundation
 
 @MainActor
 class Tab {
-    
+
     // MARK: - Properties
-    
+
     let id: UUID
     let directoryState: DirectoryState
-    
+
     // MARK: - Initialization
-    
-    init(initialURL: URL = FileManager.default.homeDirectoryForCurrentUser) {
+
+    init(initialURL: URL = FileManager.default.homeDirectoryForCurrentUser, provider: FileSystemProvider? = nil) {
         self.id = UUID()
-        self.directoryState = DirectoryState(initialURL: initialURL)
+        self.directoryState = DirectoryState(initialURL: initialURL, provider: provider)
     }
 }
