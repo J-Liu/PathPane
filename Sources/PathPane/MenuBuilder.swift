@@ -38,8 +38,18 @@ struct MenuBuilder {
         appMenu.addItem(
             NSMenuItem(
                 title: "About PathPane",
-                action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
+                action: #selector(AppDelegate.showAbout),
                 keyEquivalent: ""
+            )
+        )
+        
+        appMenu.addItem(NSMenuItem.separator())
+        
+        appMenu.addItem(
+            NSMenuItem(
+                title: "Settings...",
+                action: #selector(AppDelegate.showSettings),
+                keyEquivalent: ","
             )
         )
         
