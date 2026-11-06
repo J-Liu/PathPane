@@ -4,15 +4,21 @@ import AppKit
 
 class ContentViewController: NSViewController {
     
-    // MARK: - UI Elements
+    // MARK: - Properties
     
-    private lazy var placeholderLabel: NSTextField = {
-        let label = NSTextField(labelWithString: "PathPane")
-        label.font = NSFont.systemFont(ofSize: 24, weight: .medium)
-        label.textColor = NSColor.secondaryLabelColor
-        label.alignment = .center
-        return label
-    }()
+    private let directoryState: DirectoryState
+    private var fileListViewController: FileListViewController?
+    
+    // MARK: - Initialization
+    
+    init(directoryState: DirectoryState) {
+        self.directoryState = directoryState
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     // MARK: - Lifecycle
     
@@ -28,14 +34,21 @@ class ContentViewController: NSViewController {
     // MARK: - Setup
     
     private func setupSubviews() {
-        view.addSubview(placeholderLabel)
-        placeholderLabel.translatesAutoresizingMaskIntoConstraints = false
+        let fileVC = FileListViewController(directoryState: directoryState)
+        addChild(fileVC)
+        view.addSubview(fileVC.view)
+        fileVC.view.translatesAutoresizingMaskIntoConstraints = false
+        self.fileListViewController = fileVC
     }
     
     private func setupConstraints() {
+        guard let fileVC = fileListViewController else { return }
+        
         NSLayoutConstraint.activate([
-            placeholderLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            placeholderLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+            fileVC.view.topAnchor.constraint(equalTo: view.topAnchor),
+            fileVC.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            fileVC.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            fileVC.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
     }
 }

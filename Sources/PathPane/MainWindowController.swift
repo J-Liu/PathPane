@@ -4,6 +4,10 @@ import AppKit
 
 class MainWindowController: NSWindowController {
     
+    // MARK: - Properties
+    
+    private let directoryState = DirectoryState()
+    
     // MARK: - Initialization
     
     init() {
@@ -26,7 +30,7 @@ class MainWindowController: NSWindowController {
         window.titleVisibility = .visible
         
         // Create content view controller
-        let contentVC = ContentViewController()
+        let contentVC = ContentViewController(directoryState: directoryState)
         
         super.init(window: window)
         
