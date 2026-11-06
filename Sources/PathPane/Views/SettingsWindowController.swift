@@ -210,17 +210,162 @@ class SettingsWindowController: NSWindowController {
     private func createAboutTab() -> NSView {
         let container = NSView()
 
-        // Placeholder - will be implemented in next commit
-        let placeholderLabel = NSTextField(labelWithString: "About page will be here")
-        placeholderLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(placeholderLabel)
+        let appIcon = NSImageView()
+        if let image = NSImage(named: "NSApplicationIcon") {
+            appIcon.image = image
+        } else {
+            appIcon.image = NSImage(systemSymbolName: "folder", accessibilityDescription: nil)
+            appIcon.contentTintColor = .controlAccentColor
+        }
+        appIcon.translatesAutoresizingMaskIntoConstraints = false
+        appIcon.widthAnchor.constraint(equalToConstant: 80).isActive = true
+        appIcon.heightAnchor.constraint(equalToConstant: 80).isActive = true
+        container.addSubview(appIcon)
+
+        let nameLabel = NSTextField(labelWithString: "PathPane")
+        nameLabel.font = .systemFont(ofSize: 22, weight: .semibold)
+        nameLabel.alignment = .center
+        nameLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(nameLabel)
+
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+        let versionLabel = NSTextField(labelWithString: "\(L("settings.about.version")) \(version)")
+        versionLabel.alignment = .center
+        versionLabel.textColor = .secondaryLabelColor
+        versionLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(versionLabel)
+
+        let copyrightLabel = NSTextField(labelWithString: L("settings.about.copyright"))
+        copyrightLabel.alignment = .center
+        copyrightLabel.textColor = .secondaryLabelColor
+        copyrightLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(copyrightLabel)
+
+        let githubButton = NSButton(title: "github.com/J-Liu/PathPane", target: self, action: #selector(openGitHub))
+        githubButton.bezelStyle = .rounded
+        githubButton.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(githubButton)
+
+        let licenseButton = NSButton(title: L("settings.about.license"), target: self, action: #selector(showLicense))
+        licenseButton.bezelStyle = .rounded
+        licenseButton.translatesAutoresizingMaskIntoConstraints = false
+
+        let noticeButton = NSButton(title: L("settings.about.notice"), target: self, action: #selector(showNotice))
+        noticeButton.bezelStyle = .rounded
+        noticeButton.translatesAutoresizingMaskIntoConstraints = false
+
+        let buttonRow = NSStackView(views: [licenseButton, noticeButton])
+        buttonRow.orientation = .horizontal
+        buttonRow.spacing = 16
+        buttonRow.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(buttonRow)
 
         NSLayoutConstraint.activate([
-            placeholderLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            placeholderLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+            appIcon.topAnchor.constraint(equalTo: container.topAnchor, constant: 40),
+            appIcon.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+
+            nameLabel.topAnchor.constraint(equalTo: appIcon.bottomAnchor, constant: 16),
+            nameLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+
+            versionLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 8),
+            versionLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+
+            copyrightLabel.topAnchor.constraint(equalTo: versionLabel.bottomAnchor, constant: 8),
+            copyrightLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+
+            githubButton.topAnchor.constraint(equalTo: copyrightLabel.bottomAnchor, constant: 24),
+            githubButton.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+
+            buttonRow.topAnchor.constraint(equalTo: githubButton.bottomAnchor, constant: 12),
+            buttonRow.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            buttonRow.bottomAnchor.constraint(lessThanOrEqualTo: container.bottomAnchor, constant: -20)
         ])
 
         return container
+    }
+
+    // MARK: - About Actions
+
+    @objc private func openGitHub() {
+        if let url = URL(string: "https://github.com/J-Liu/PathPane") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    @objc private func showLicense() {
+        let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 480, height: 350))
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+
+        let licenseText = """
+        MIT License
+
+        Copyright (c) 2026 Jia Liu
+
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        """
+
+        textView.string = licenseText
+        textView.textContainerInset = NSSize(width: 8, height: 8)
+
+        let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 500, height: 370))
+        scrollView.documentView = textView
+        scrollView.hasVerticalScroller = true
+        scrollView.borderType = .bezelBorder
+
+        let alert = NSAlert()
+        alert.messageText = L("settings.about.license")
+        alert.accessoryView = scrollView
+        alert.addButton(withTitle: L("OK"))
+        alert.beginSheetModal(for: window!)
+    }
+
+    @objc private func showNotice() {
+        let notice = """
+        PathPane - A native macOS file manager
+        Copyright 2026 Jia Liu
+
+        This product includes software developed by Jia Liu.
+
+        The original PathPane project and its contributors must be credited
+        in any redistribution or derivative work. This attribution notice must
+        be retained in all copies or substantial portions of the software.
+        """
+
+        let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 480, height: 200))
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.font = .systemFont(ofSize: 13, weight: .regular)
+        textView.string = notice
+        textView.textContainerInset = NSSize(width: 8, height: 8)
+
+        let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 500, height: 220))
+        scrollView.documentView = textView
+        scrollView.hasVerticalScroller = true
+        scrollView.borderType = .bezelBorder
+
+        let alert = NSAlert()
+        alert.messageText = L("settings.about.notice")
+        alert.accessoryView = scrollView
+        alert.addButton(withTitle: L("OK"))
+        alert.beginSheetModal(for: window!)
     }
 }
 
