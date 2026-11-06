@@ -17,6 +17,12 @@ class ContentViewController: NSViewController {
         return view
     }()
     
+    private lazy var breadcrumbView: BreadcrumbView = {
+        let view = BreadcrumbView()
+        view.currentURL = directoryState.currentURL
+        return view
+    }()
+    
     // MARK: - Initialization
     
     init(directoryState: DirectoryState) {
@@ -42,6 +48,13 @@ class ContentViewController: NSViewController {
     // MARK: - Setup
     
     private func setupSubviews() {
+        // Add breadcrumb view
+        view.addSubview(breadcrumbView)
+        breadcrumbView.translatesAutoresizingMaskIntoConstraints = false
+        breadcrumbView.onBreadcrumbClick = { [weak self] url in
+            self?.navigateToURL(url)
+        }
+        
         // Add path bar
         view.addSubview(pathBarView)
         pathBarView.translatesAutoresizingMaskIntoConstraints = false
@@ -61,7 +74,11 @@ class ContentViewController: NSViewController {
         guard let fileVC = fileListViewController else { return }
         
         NSLayoutConstraint.activate([
-            pathBarView.topAnchor.constraint(equalTo: view.topAnchor),
+            breadcrumbView.topAnchor.constraint(equalTo: view.topAnchor),
+            breadcrumbView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            breadcrumbView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            
+            pathBarView.topAnchor.constraint(equalTo: breadcrumbView.bottomAnchor),
             pathBarView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             pathBarView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             
@@ -76,6 +93,7 @@ class ContentViewController: NSViewController {
     
     func updatePathBar() {
         pathBarView.currentURL = directoryState.currentURL
+        breadcrumbView.currentURL = directoryState.currentURL
     }
     
     func activatePathBarForEditing() {
