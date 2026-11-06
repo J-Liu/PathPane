@@ -1,4 +1,5 @@
 import AppKit
+import UniformTypeIdentifiers
 
 // MARK: - File List View Controller
 
@@ -26,11 +27,13 @@ class FileListViewController: NSViewController {
         tableView.selectionHighlightStyle = .regular
         tableView.allowsMultipleSelection = true
         tableView.allowsEmptySelection = true
-        tableView.headerView = nil
         return tableView
     }()
     
     private let nameColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("name"))
+    private let sizeColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("size"))
+    private let modifiedColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("modified"))
+    private let kindColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("kind"))
     
     // MARK: - Initialization
     
@@ -57,12 +60,30 @@ class FileListViewController: NSViewController {
     // MARK: - Setup
     
     private func setupSubviews() {
-        // Add table column
+        // Name column
         nameColumn.title = "Name"
         nameColumn.width = 300
-        nameColumn.minWidth = 100
-        nameColumn.maxWidth = 1000
+        nameColumn.minWidth = 150
         tableView.addTableColumn(nameColumn)
+        
+        // Size column
+        sizeColumn.title = "Size"
+        sizeColumn.width = 100
+        sizeColumn.minWidth = 80
+        sizeColumn.maxWidth = 150
+        tableView.addTableColumn(sizeColumn)
+        
+        // Modified column
+        modifiedColumn.title = "Modified"
+        modifiedColumn.width = 180
+        modifiedColumn.minWidth = 120
+        tableView.addTableColumn(modifiedColumn)
+        
+        // Kind column
+        kindColumn.title = "Kind"
+        kindColumn.width = 120
+        kindColumn.minWidth = 80
+        tableView.addTableColumn(kindColumn)
         
         // Set data source and delegate
         tableView.dataSource = self
@@ -107,18 +128,32 @@ extension FileListViewController: NSTableViewDelegate {
     
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard row < directoryState.items.count else { return nil }
-        
         let item = directoryState.items[row]
         
-        // Create or reuse cell
-        let cellIdentifier = NSUserInterfaceItemIdentifier("FileCell")
+        // Determine which column
+        if tableColumn == nameColumn {
+            return createNameCell(for: item, row: row)
+        } else if tableColumn == sizeColumn {
+            return createSizeCell(for: item, row: row)
+        } else if tableColumn == modifiedColumn {
+            return createModifiedCell(for: item, row: row)
+        } else if tableColumn == kindColumn {
+            return createKindCell(for: item, row: row)
+        }
+        
+        return nil
+    }
+    
+    // MARK: - Cell Creation
+    
+    private func createNameCell(for item: FileItem, row: Int) -> NSView? {
+        let cellIdentifier = NSUserInterfaceItemIdentifier("NameCell")
         var cell = tableView.makeView(withIdentifier: cellIdentifier, owner: nil) as? NSTableCellView
         
         if cell == nil {
             cell = NSTableCellView()
             cell?.identifier = cellIdentifier
             
-            // Add text field
             let textField = NSTextField()
             textField.isEditable = false
             textField.isBordered = false
@@ -127,13 +162,11 @@ extension FileListViewController: NSTableViewDelegate {
             cell?.addSubview(textField)
             cell?.textField = textField
             
-            // Add icon
             let imageView = NSImageView()
             imageView.translatesAutoresizingMaskIntoConstraints = false
             cell?.addSubview(imageView)
             cell?.imageView = imageView
             
-            // Layout
             NSLayoutConstraint.activate([
                 imageView.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 4),
                 imageView.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
@@ -146,10 +179,118 @@ extension FileListViewController: NSTableViewDelegate {
             ])
         }
         
-        // Configure cell
         cell?.textField?.stringValue = item.name
         cell?.imageView?.image = NSWorkspace.shared.icon(forFile: item.url.path)
         cell?.imageView?.image?.size = NSSize(width: 16, height: 16)
+        
+        return cell
+    }
+    
+    private func createSizeCell(for item: FileItem, row: Int) -> NSView? {
+        let cellIdentifier = NSUserInterfaceItemIdentifier("SizeCell")
+        var cell = tableView.makeView(withIdentifier: cellIdentifier, owner: nil) as? NSTableCellView
+        
+        if cell == nil {
+            cell = NSTableCellView()
+            cell?.identifier = cellIdentifier
+            
+            let textField = NSTextField()
+            textField.isEditable = false
+            textField.isBordered = false
+            textField.backgroundColor = .clear
+            textField.alignment = .right
+            textField.translatesAutoresizingMaskIntoConstraints = false
+            cell?.addSubview(textField)
+            cell?.textField = textField
+            
+            NSLayoutConstraint.activate([
+                textField.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 4),
+                textField.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -4),
+                textField.centerYAnchor.constraint(equalTo: cell!.centerYAnchor)
+            ])
+        }
+        
+        // Format size
+        if item.isDirectory {
+            cell?.textField?.stringValue = "--"
+        } else {
+            let formatter = ByteCountFormatter()
+            formatter.allowedUnits = [.useBytes, .useKB, .useMB, .useGB]
+            formatter.countStyle = .file
+            cell?.textField?.stringValue = formatter.string(fromByteCount: Int64(item.fileSize))
+        }
+        
+        return cell
+    }
+    
+    private func createModifiedCell(for item: FileItem, row: Int) -> NSView? {
+        let cellIdentifier = NSUserInterfaceItemIdentifier("ModifiedCell")
+        var cell = tableView.makeView(withIdentifier: cellIdentifier, owner: nil) as? NSTableCellView
+        
+        if cell == nil {
+            cell = NSTableCellView()
+            cell?.identifier = cellIdentifier
+            
+            let textField = NSTextField()
+            textField.isEditable = false
+            textField.isBordered = false
+            textField.backgroundColor = .clear
+            textField.translatesAutoresizingMaskIntoConstraints = false
+            cell?.addSubview(textField)
+            cell?.textField = textField
+            
+            NSLayoutConstraint.activate([
+                textField.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 4),
+                textField.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -4),
+                textField.centerYAnchor.constraint(equalTo: cell!.centerYAnchor)
+            ])
+        }
+        
+        // Format date
+        if let date = item.modificationDate {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            cell?.textField?.stringValue = formatter.string(from: date)
+        } else {
+            cell?.textField?.stringValue = "--"
+        }
+        
+        return cell
+    }
+    
+    private func createKindCell(for item: FileItem, row: Int) -> NSView? {
+        let cellIdentifier = NSUserInterfaceItemIdentifier("KindCell")
+        var cell = tableView.makeView(withIdentifier: cellIdentifier, owner: nil) as? NSTableCellView
+        
+        if cell == nil {
+            cell = NSTableCellView()
+            cell?.identifier = cellIdentifier
+            
+            let textField = NSTextField()
+            textField.isEditable = false
+            textField.isBordered = false
+            textField.backgroundColor = .clear
+            textField.translatesAutoresizingMaskIntoConstraints = false
+            cell?.addSubview(textField)
+            cell?.textField = textField
+            
+            NSLayoutConstraint.activate([
+                textField.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 4),
+                textField.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -4),
+                textField.centerYAnchor.constraint(equalTo: cell!.centerYAnchor)
+            ])
+        }
+        
+        // Determine kind
+        if item.isDirectory {
+            cell?.textField?.stringValue = "Folder"
+        } else {
+            // Use modern UTType API
+            let type = UTType(filenameExtension: item.fileExtension) ?? .item
+            let description = type.localizedDescription ?? "Document"
+            cell?.textField?.stringValue = description
+        }
         
         return cell
     }
