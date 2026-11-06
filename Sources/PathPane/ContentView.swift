@@ -45,6 +45,9 @@ class ContentViewController: NSViewController {
         // Add path bar
         view.addSubview(pathBarView)
         pathBarView.translatesAutoresizingMaskIntoConstraints = false
+        pathBarView.onPathSubmit = { [weak self] url in
+            self?.navigateToURL(url)
+        }
         
         // Add file list
         let fileVC = FileListViewController(directoryState: directoryState)
@@ -77,5 +80,16 @@ class ContentViewController: NSViewController {
     
     func activatePathBarForEditing() {
         pathBarView.activateForEditing()
+    }
+    
+    // MARK: - Navigation
+    
+    private func navigateToURL(_ url: URL) {
+        directoryState.load(url: url) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.updatePathBar()
+                self?.fileListViewController?.reloadData()
+            }
+        }
     }
 }

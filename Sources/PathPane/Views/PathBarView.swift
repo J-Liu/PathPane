@@ -12,6 +12,8 @@ class PathBarView: NSView {
         }
     }
     
+    var onPathSubmit: ((URL) -> Void)?
+    
     var isEditable: Bool {
         get { pathTextField.isEditable }
         set {
@@ -38,6 +40,9 @@ class PathBarView: NSView {
         textField.textColor = .labelColor
         textField.lineBreakMode = .byTruncatingHead
         textField.translatesAutoresizingMaskIntoConstraints = false
+        textField.target = self
+        textField.action = #selector(handlePathSubmit)
+        textField.delegate = self
         return textField
     }()
     
@@ -116,9 +121,49 @@ class PathBarView: NSView {
         return pathTextField
     }
     
+    // MARK: - Actions
+    
+    @objc private func handlePathSubmit() {
+        let inputPath = pathTextField.stringValue
+        
+        // Expand tilde
+        let expandedPath = NSString(string: inputPath).expandingTildeInPath
+        let url = URL(fileURLWithPath: expandedPath)
+        
+        // Validate path
+        var isDirectory: ObjCBool = false
+        let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+        
+        if exists && isDirectory.boolValue {
+            // Valid directory, navigate to it
+            onPathSubmit?(url)
+            deactivateEditing()
+        } else {
+            // Invalid path, restore original and beep
+            NSSound.beep()
+            updatePathDisplay()
+            pathTextField.selectText(nil)
+        }
+    }
+    
     // MARK: - Layout
     
     override var intrinsicContentSize: NSSize {
         return NSSize(width: NSView.noIntrinsicMetric, height: 36)
+    }
+}
+
+// MARK: - NSTextFieldDelegate
+
+extension PathBarView: NSTextFieldDelegate {
+    
+    func controlTextDidEndEditing(_ obj: Notification) {
+        // Handle loss of focus
+        if !pathTextField.isEditable {
+            return
+        }
+        
+        // Restore non-editable state if user clicked elsewhere
+        // The action will handle Enter key
     }
 }
