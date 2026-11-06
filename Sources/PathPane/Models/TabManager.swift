@@ -17,8 +17,9 @@ class TabManager {
     // MARK: - Initialization
     
     private init() {
-        // Create initial tab with home directory
-        let initialTab = Tab(initialURL: FileManager.default.homeDirectoryForCurrentUser)
+        // Restore last visited directory or use home directory
+        let initialURL = SettingsManager.shared.lastVisitedDirectory ?? FileManager.default.homeDirectoryForCurrentUser
+        let initialTab = Tab(initialURL: initialURL)
         tabs = [initialTab]
     }
     

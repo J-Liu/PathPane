@@ -13,6 +13,9 @@ enum SettingsKey {
     static let selectionBehavior = "selectionBehavior"
     static let viewMode = "viewMode"
     static let showHiddenFiles = "showHiddenFiles"
+    static let dualPaneMode = "dualPaneMode"
+    static let windowSize = "windowSize"
+    static let lastVisitedDirectory = "lastVisitedDirectory"
 }
 
 // MARK: - Settings Manager
@@ -66,6 +69,50 @@ class SettingsManager {
         }
         set {
             defaults.set(newValue, forKey: SettingsKey.showHiddenFiles)
+        }
+    }
+
+    // MARK: - Dual Pane Mode
+
+    var dualPaneMode: Bool {
+        get {
+            defaults.bool(forKey: SettingsKey.dualPaneMode)
+        }
+        set {
+            defaults.set(newValue, forKey: SettingsKey.dualPaneMode)
+        }
+    }
+
+    // MARK: - Window Size
+
+    var windowSize: NSSize? {
+        get {
+            guard let sizeString = defaults.string(forKey: SettingsKey.windowSize),
+                  let width = Double(sizeString.split(separator: ",").first ?? ""),
+                  let height = Double(sizeString.split(separator: ",").last ?? "") else {
+                return nil
+            }
+            return NSSize(width: width, height: height)
+        }
+        set {
+            if let size = newValue {
+                let sizeString = "\(size.width),\(size.height)"
+                defaults.set(sizeString, forKey: SettingsKey.windowSize)
+            }
+        }
+    }
+
+    // MARK: - Last Visited Directory
+
+    var lastVisitedDirectory: URL? {
+        get {
+            guard let path = defaults.string(forKey: SettingsKey.lastVisitedDirectory) else {
+                return nil
+            }
+            return URL(fileURLWithPath: path)
+        }
+        set {
+            defaults.set(newValue?.path, forKey: SettingsKey.lastVisitedDirectory)
         }
     }
 }

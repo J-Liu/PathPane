@@ -29,9 +29,12 @@ class MainWindowController: NSWindowController {
     // MARK: - Initialization
     
     init() {
+        // Restore saved window size or use default
+        let savedSize = SettingsManager.shared.windowSize ?? NSSize(width: 800, height: 600)
+        
         // Create window with minimum size
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
+            contentRect: NSRect(x: 0, y: 0, width: savedSize.width, height: savedSize.height),
             styleMask: [.titled, .closable, .resizable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -57,6 +60,9 @@ class MainWindowController: NSWindowController {
         
         // Set window delegate
         window.delegate = self
+        
+        // Restore dual pane mode
+        isDualPaneMode = SettingsManager.shared.dualPaneMode
         
         // Load initial tab
         updateActiveTab()
@@ -271,7 +277,18 @@ extension MainWindowController: TabBarViewDelegate {
 
 extension MainWindowController: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
-        // Clean up resources when window closes
+        // Save window size
+        if let window = window {
+            SettingsManager.shared.windowSize = window.frame.size
+        }
+        
+        // Save dual pane mode
+        SettingsManager.shared.dualPaneMode = isDualPaneMode
+        
+        // Save last visited directory
+        if let activeTab = tabManager.activeTab {
+            SettingsManager.shared.lastVisitedDirectory = activeTab.directoryState.currentURL
+        }
     }
 }
 
