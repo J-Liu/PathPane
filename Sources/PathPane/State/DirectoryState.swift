@@ -25,6 +25,7 @@ class DirectoryState {
     
     private let fileSystemService = FileSystemService.shared
     private var loadCompletion: LoadCompletion?
+    private let watcher = FileSystemWatcher()
     
     // MARK: - Initialization
     
@@ -49,10 +50,28 @@ class DirectoryState {
             items = []
             loadCompletion?(.failure(error))
         }
+        
+        // Start watching for file system changes
+        startWatching()
+    }
+    
+    /// Start watching current directory for changes
+    private func startWatching() {
+        watcher.startWatching(url: currentURL) { [weak self] in
+            Task { @MainActor in
+                self?.reload()
+            }
+        }
     }
     
     /// Reload current directory
     func reload() {
-        load(url: currentURL, completion: loadCompletion)
+        do {
+            items = try fileSystemService.listContents(of: currentURL, showHidden: showHiddenFiles)
+            loadCompletion?(.success(items))
+        } catch {
+            items = []
+            loadCompletion?(.failure(error))
+        }
     }
 }
