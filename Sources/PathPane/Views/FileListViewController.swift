@@ -339,9 +339,52 @@ class FileListViewController: NSViewController {
     @objc private func renameSelectedItem() {
         let selectedRow = tableView.selectedRow
         guard selectedRow >= 0, selectedRow < directoryState.items.count else { return }
-        
-        // TODO: Implement rename dialog or inline editing
-        print("Rename: \(directoryState.items[selectedRow].name)")
+
+        let item = directoryState.items[selectedRow]
+
+        let alert = NSAlert()
+        alert.messageText = "Rename"
+        alert.informativeText = "Enter new name for '\(item.name)':"
+        alert.addButton(withTitle: "Rename")
+        alert.addButton(withTitle: "Cancel")
+
+        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 300, height: 24))
+        textField.stringValue = item.name
+        alert.accessoryView = textField
+
+        alert.window.initialFirstResponder = textField
+
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            let newName = textField.stringValue.trimmingCharacters(in: .whitespaces)
+
+            // Validate name
+            guard !newName.isEmpty else {
+                NSSound.beep()
+                return
+            }
+
+            guard !newName.contains("/") else {
+                NSSound.beep()
+                return
+            }
+
+            let newURL = item.url.deletingLastPathComponent().appendingPathComponent(newName)
+
+            guard !FileManager.default.fileExists(atPath: newURL.path) else {
+                NSSound.beep()
+                return
+            }
+
+            do {
+                try FileManager.default.moveItem(at: item.url, to: newURL)
+                directoryState.reload()
+                tableView.reloadData()
+            } catch {
+                print("Error renaming \(item.url): \(error)")
+                NSSound.beep()
+            }
+        }
     }
     
     @objc private func moveToTrash() {
