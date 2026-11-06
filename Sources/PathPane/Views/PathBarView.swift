@@ -12,6 +12,21 @@ class PathBarView: NSView {
         }
     }
     
+    var isEditable: Bool {
+        get { pathTextField.isEditable }
+        set {
+            pathTextField.isEditable = newValue
+            if newValue {
+                pathTextField.backgroundColor = NSColor.textBackgroundColor
+                pathTextField.isBezeled = true
+                pathTextField.bezelStyle = .roundedBezel
+            } else {
+                pathTextField.backgroundColor = .clear
+                pathTextField.isBezeled = false
+            }
+        }
+    }
+    
     // MARK: - UI Elements
     
     private lazy var pathTextField: NSTextField = {
@@ -78,6 +93,27 @@ class PathBarView: NSView {
             return
         }
         pathTextField.stringValue = url.path
+    }
+    
+    // MARK: - Public Methods
+    
+    func activateForEditing() {
+        isEditable = true
+        window?.makeFirstResponder(pathTextField)
+        
+        // Select all text
+        DispatchQueue.main.async {
+            self.pathTextField.currentEditor()?.selectAll(nil)
+        }
+    }
+    
+    func deactivateEditing() {
+        isEditable = false
+        window?.makeFirstResponder(nil)
+    }
+    
+    func textField() -> NSTextField {
+        return pathTextField
     }
     
     // MARK: - Layout

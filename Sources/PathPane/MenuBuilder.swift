@@ -204,7 +204,7 @@ struct MenuBuilder {
         viewMenu.addItem(
             NSMenuItem(
                 title: "Go to Folder...",
-                action: nil,
+                action: #selector(MainWindowController.goToFolder),
                 keyEquivalent: "l"
             )
         )

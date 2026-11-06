@@ -87,6 +87,12 @@ class MainWindowController: NSWindowController {
         reloadTableView()
     }
     
+    @objc func goToFolder(_ sender: Any?) {
+        if let fileVC = contentViewController as? ContentViewController {
+            fileVC.activatePathBarForEditing()
+        }
+    }
+    
     private func reloadTableView() {
         if let fileVC = contentViewController as? ContentViewController,
            let listVC = fileVC.fileListViewController {

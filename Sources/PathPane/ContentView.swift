@@ -74,4 +74,8 @@ class ContentViewController: NSViewController {
     func updatePathBar() {
         pathBarView.currentURL = directoryState.currentURL
     }
+    
+    func activatePathBarForEditing() {
+        pathBarView.activateForEditing()
+    }
 }
