@@ -100,7 +100,7 @@ struct MenuBuilder {
         fileMenu.addItem(
             NSMenuItem(
                 title: "New Tab",
-                action: nil,
+                action: #selector(MainWindowController.createNewTab),
                 keyEquivalent: "t"
             )
         )
@@ -109,11 +109,20 @@ struct MenuBuilder {
         
         fileMenu.addItem(
             NSMenuItem(
+                title: "Close Tab",
+                action: #selector(MainWindowController.closeCurrentTab),
+                keyEquivalent: "w"
+            )
+        )
+        
+        fileMenu.addItem(
+            NSMenuItem(
                 title: "Close Window",
                 action: #selector(NSWindow.performClose(_:)),
                 keyEquivalent: "w"
             )
         )
+        fileMenu.item(withTitle: "Close Window")?.keyEquivalentModifierMask = [.shift, .command]
         
         let menuItem = NSMenuItem(title: "File", action: nil, keyEquivalent: "")
         menuItem.submenu = fileMenu
@@ -198,6 +207,25 @@ struct MenuBuilder {
         )
         showHiddenItem.keyEquivalentModifierMask = [.shift, .command]
         viewMenu.addItem(showHiddenItem)
+
+        viewMenu.addItem(NSMenuItem.separator())
+
+        // Tab navigation
+        let nextTabItem = NSMenuItem(
+            title: "Show Next Tab",
+            action: #selector(MainWindowController.selectNextTab),
+            keyEquivalent: "\t"
+        )
+        nextTabItem.keyEquivalentModifierMask = [.control]
+        viewMenu.addItem(nextTabItem)
+
+        let prevTabItem = NSMenuItem(
+            title: "Show Previous Tab",
+            action: #selector(MainWindowController.selectPreviousTab),
+            keyEquivalent: "\t"
+        )
+        prevTabItem.keyEquivalentModifierMask = [.control, .shift]
+        viewMenu.addItem(prevTabItem)
 
         viewMenu.addItem(NSMenuItem.separator())
 

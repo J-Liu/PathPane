@@ -6,9 +6,11 @@ class MainWindowController: NSWindowController {
     
     // MARK: - Properties
     
-    private let directoryState = DirectoryState()
+    private let tabManager = TabManager.shared
     private var toolbar: NSToolbar?
-
+    private var tabBarView: TabBarView?
+    private var containerContentView: NSView?
+    
     // MARK: - Initialization
     
     init() {
@@ -30,23 +32,59 @@ class MainWindowController: NSWindowController {
         window.titlebarAppearsTransparent = false
         window.titleVisibility = .visible
         
-        // Create content view controller
-        let contentVC = ContentViewController(directoryState: directoryState)
-        
         super.init(window: window)
         
-        // Set content view controller
-        contentViewController = contentVC
+        // Setup content view with tab bar
+        setupContentView(for: window)
         
         // Setup toolbar
         setupToolbar(for: window)
         
         // Set window delegate
         window.delegate = self
+        
+        // Load initial tab
+        updateActiveTab()
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    // MARK: - View Setup
+    
+    private func setupContentView(for window: NSWindow) {
+        guard let contentView = window.contentView else { return }
+        
+        // Create tab bar
+        let tabBar = TabBarView()
+        tabBar.delegate = self
+        tabBar.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Create container for content
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        contentView.addSubview(tabBar)
+        contentView.addSubview(container)
+        
+        NSLayoutConstraint.activate([
+            tabBar.topAnchor.constraint(equalTo: contentView.topAnchor),
+            tabBar.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            tabBar.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            tabBar.heightAnchor.constraint(equalToConstant: 32),
+            
+            container.topAnchor.constraint(equalTo: tabBar.bottomAnchor),
+            container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            container.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            container.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+        ])
+        
+        self.tabBarView = tabBar
+        self.containerContentView = container
+        
+        // Update tab bar
+        updateTabBar()
     }
     
     // MARK: - Window Management
@@ -65,26 +103,79 @@ class MainWindowController: NSWindowController {
         self.toolbar = toolbar
     }
     
+    // MARK: - Tab Management
+    
+    private func updateTabBar() {
+        guard let tabBarView = tabBarView else { return }
+        tabBarView.updateTabs(tabManager.tabs, activeIndex: tabManager.activeTabIndex)
+    }
+    
+    private func updateActiveTab() {
+        guard let container = containerContentView,
+              let activeTab = tabManager.activeTab else { return }
+        
+        // Remove old content view controller
+        contentViewController?.view.removeFromSuperview()
+        
+        // Create new content view controller for active tab
+        let contentVC = ContentViewController(directoryState: activeTab.directoryState)
+        contentViewController = contentVC
+        
+        // Add to container
+        contentVC.view.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(contentVC.view)
+        
+        NSLayoutConstraint.activate([
+            contentVC.view.topAnchor.constraint(equalTo: container.topAnchor),
+            contentVC.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            contentVC.view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            contentVC.view.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        
+        // Update tab bar
+        updateTabBar()
+    }
+    
+    @objc func createNewTab() {
+        tabManager.createNewTab()
+        updateActiveTab()
+    }
+    
+    @objc func closeCurrentTab() {
+        tabManager.closeTab(at: tabManager.activeTabIndex)
+        updateActiveTab()
+    }
+    
+    @objc func selectNextTab() {
+        tabManager.nextTab()
+        updateActiveTab()
+    }
+    
+    @objc func selectPreviousTab() {
+        tabManager.previousTab()
+        updateActiveTab()
+    }
+    
     // MARK: - Toolbar Actions
     
     @objc func goBack(_ sender: Any?) {
-        directoryState.goBack()
-        reloadTableView()
+        tabManager.activeTab?.directoryState.goBack()
+        reloadCurrentView()
     }
     
     @objc func goForward(_ sender: Any?) {
-        directoryState.goForward()
-        reloadTableView()
+        tabManager.activeTab?.directoryState.goForward()
+        reloadCurrentView()
     }
     
     @objc func goUp(_ sender: Any?) {
-        directoryState.goUp()
-        reloadTableView()
+        tabManager.activeTab?.directoryState.goUp()
+        reloadCurrentView()
     }
     
     @objc func refresh(_ sender: Any?) {
-        directoryState.reload()
-        reloadTableView()
+        tabManager.activeTab?.directoryState.reload()
+        reloadCurrentView()
     }
     
     @objc func goToFolder(_ sender: Any?) {
@@ -116,15 +207,34 @@ class MainWindowController: NSWindowController {
     // MARK: - Hidden Files
 
     @objc func toggleHiddenFiles(_ sender: Any?) {
-        directoryState.showHiddenFiles.toggle()
-        reloadTableView()
+        tabManager.activeTab?.directoryState.showHiddenFiles.toggle()
+        reloadCurrentView()
     }
 
-    private func reloadTableView() {
+    private func reloadCurrentView() {
         if let fileVC = contentViewController as? ContentViewController {
             fileVC.reloadCurrentView()
             fileVC.updatePathBar()
         }
+    }
+}
+
+// MARK: - TabBarViewDelegate
+
+extension MainWindowController: TabBarViewDelegate {
+    
+    func tabBarViewDidRequestNewTab() {
+        createNewTab()
+    }
+    
+    func tabBarView(_ view: TabBarView, didSelectTabAt index: Int) {
+        tabManager.switchToTab(at: index)
+        updateActiveTab()
+    }
+    
+    func tabBarView(_ view: TabBarView, didRequestCloseTabAt index: Int) {
+        tabManager.closeTab(at: index)
+        updateActiveTab()
     }
 }
 
