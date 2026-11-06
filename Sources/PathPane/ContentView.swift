@@ -7,7 +7,13 @@ class ContentViewController: NSViewController {
     // MARK: - Properties
     
     private let directoryState: DirectoryState
+    private let settings = SettingsManager.shared
+    
     var fileListViewController: FileListViewController?
+    private var iconGridViewController: IconGridViewController?
+    private var thumbnailGridViewController: ThumbnailGridViewController?
+    
+    private var currentViewMode: ViewMode = .list
     
     // MARK: - UI Elements
     
@@ -20,6 +26,12 @@ class ContentViewController: NSViewController {
     private lazy var breadcrumbView: BreadcrumbView = {
         let view = BreadcrumbView()
         view.currentURL = directoryState.currentURL
+        return view
+    }()
+    
+    private var containerView: NSView = {
+        let view = NSView()
+        view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
@@ -43,6 +55,7 @@ class ContentViewController: NSViewController {
         
         setupSubviews()
         setupConstraints()
+        switchToViewMode(settings.viewMode)
     }
     
     // MARK: - Setup
@@ -62,17 +75,11 @@ class ContentViewController: NSViewController {
             self?.navigateToURL(url)
         }
         
-        // Add file list
-        let fileVC = FileListViewController(directoryState: directoryState)
-        addChild(fileVC)
-        view.addSubview(fileVC.view)
-        fileVC.view.translatesAutoresizingMaskIntoConstraints = false
-        self.fileListViewController = fileVC
+        // Add container for file views
+        view.addSubview(containerView)
     }
     
     private func setupConstraints() {
-        guard let fileVC = fileListViewController else { return }
-        
         NSLayoutConstraint.activate([
             breadcrumbView.topAnchor.constraint(equalTo: view.topAnchor),
             breadcrumbView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -82,11 +89,49 @@ class ContentViewController: NSViewController {
             pathBarView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             pathBarView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             
-            fileVC.view.topAnchor.constraint(equalTo: pathBarView.bottomAnchor),
-            fileVC.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            fileVC.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            fileVC.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            containerView.topAnchor.constraint(equalTo: pathBarView.bottomAnchor),
+            containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+    }
+    
+    // MARK: - View Mode Switching
+    
+    func switchToViewMode(_ mode: ViewMode) {
+        currentViewMode = mode
+        settings.viewMode = mode
+        
+        // Remove current view
+        containerView.subviews.forEach { $0.removeFromSuperview() }
+        children.forEach { $0.removeFromParent() }
+        
+        // Create and add appropriate view controller
+        switch mode {
+        case .list:
+            let listVC = FileListViewController(directoryState: directoryState)
+            addChild(listVC)
+            containerView.addSubview(listVC.view)
+            listVC.view.frame = containerView.bounds
+            listVC.view.autoresizingMask = [.width, .height]
+            self.fileListViewController = listVC
+            
+        case .icon:
+            let iconVC = IconGridViewController(directoryState: directoryState)
+            addChild(iconVC)
+            containerView.addSubview(iconVC.view)
+            iconVC.view.frame = containerView.bounds
+            iconVC.view.autoresizingMask = [.width, .height]
+            self.iconGridViewController = iconVC
+            
+        case .thumbnail:
+            let thumbnailVC = ThumbnailGridViewController(directoryState: directoryState)
+            addChild(thumbnailVC)
+            containerView.addSubview(thumbnailVC.view)
+            thumbnailVC.view.frame = containerView.bounds
+            thumbnailVC.view.autoresizingMask = [.width, .height]
+            self.thumbnailGridViewController = thumbnailVC
+        }
     }
     
     // MARK: - Public Methods
@@ -106,8 +151,19 @@ class ContentViewController: NSViewController {
         directoryState.load(url: url) { [weak self] result in
             DispatchQueue.main.async {
                 self?.updatePathBar()
-                self?.fileListViewController?.reloadData()
+                self?.reloadCurrentView()
             }
+        }
+    }
+    
+    func reloadCurrentView() {
+        switch currentViewMode {
+        case .list:
+            fileListViewController?.reloadData()
+        case .icon:
+            iconGridViewController?.reloadData()
+        case .thumbnail:
+            thumbnailGridViewController?.reloadData()
         }
     }
 }

@@ -214,7 +214,7 @@ struct MenuBuilder {
         viewMenu.addItem(
             NSMenuItem(
                 title: "as List",
-                action: nil,
+                action: #selector(MainWindowController.switchToListView),
                 keyEquivalent: "1"
             )
         )
@@ -222,8 +222,16 @@ struct MenuBuilder {
         viewMenu.addItem(
             NSMenuItem(
                 title: "as Icons",
-                action: nil,
+                action: #selector(MainWindowController.switchToIconView),
                 keyEquivalent: "2"
+            )
+        )
+        
+        viewMenu.addItem(
+            NSMenuItem(
+                title: "as Thumbnails",
+                action: #selector(MainWindowController.switchToThumbnailView),
+                keyEquivalent: "3"
             )
         )
         

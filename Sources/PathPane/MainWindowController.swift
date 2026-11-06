@@ -93,10 +93,29 @@ class MainWindowController: NSWindowController {
         }
     }
     
+    // MARK: - View Mode Actions
+    
+    @objc func switchToListView(_ sender: Any?) {
+        if let fileVC = contentViewController as? ContentViewController {
+            fileVC.switchToViewMode(.list)
+        }
+    }
+    
+    @objc func switchToIconView(_ sender: Any?) {
+        if let fileVC = contentViewController as? ContentViewController {
+            fileVC.switchToViewMode(.icon)
+        }
+    }
+    
+    @objc func switchToThumbnailView(_ sender: Any?) {
+        if let fileVC = contentViewController as? ContentViewController {
+            fileVC.switchToViewMode(.thumbnail)
+        }
+    }
+    
     private func reloadTableView() {
-        if let fileVC = contentViewController as? ContentViewController,
-           let listVC = fileVC.fileListViewController {
-            listVC.reloadData()
+        if let fileVC = contentViewController as? ContentViewController {
+            fileVC.reloadCurrentView()
             fileVC.updatePathBar()
         }
     }

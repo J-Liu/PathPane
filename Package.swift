@@ -9,7 +9,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "PathPane",
-            path: "Sources/PathPane"
+            path: "Sources/PathPane",
+            linkerSettings: [
+                .unsafeFlags(["-framework", "QuickLookThumbnailing"], .when(platforms: [.macOS]))
+            ]
         )
     ]
 )

@@ -11,6 +11,7 @@ enum SelectionBehavior: String {
 
 enum SettingsKey {
     static let selectionBehavior = "selectionBehavior"
+    static let viewMode = "viewMode"
 }
 
 // MARK: - Settings Manager
@@ -38,6 +39,21 @@ class SettingsManager {
         }
         set {
             defaults.set(newValue.rawValue, forKey: SettingsKey.selectionBehavior)
+        }
+    }
+    
+    // MARK: - View Mode
+    
+    var viewMode: ViewMode {
+        get {
+            if let rawValue = defaults.string(forKey: SettingsKey.viewMode),
+               let mode = ViewMode(rawValue: rawValue) {
+                return mode
+            }
+            return .list
+        }
+        set {
+            defaults.set(newValue.rawValue, forKey: SettingsKey.viewMode)
         }
     }
 }
