@@ -49,11 +49,13 @@ class FileListViewController: NSViewController {
     }
     
     // MARK: - Lifecycle
-    
+
     override func loadView() {
-        view = NSView()
-        view.wantsLayer = true
-        
+        let dropTargetView = DropTargetView()
+        dropTargetView.delegate = self
+        dropTargetView.wantsLayer = true
+        view = dropTargetView
+
         setupSubviews()
         setupConstraints()
         setupTrackingArea()
@@ -106,6 +108,9 @@ class FileListViewController: NSViewController {
         scrollView.documentView = tableView
         view.addSubview(scrollView)
         scrollView.translatesAutoresizingMaskIntoConstraints = false
+
+        // Register for drag and drop on the view
+        view.registerForDraggedTypes([.fileURL])
     }
     
     private func setupConstraints() {
@@ -483,9 +488,15 @@ extension FileListViewController {
 // MARK: - NSTableViewDataSource
 
 extension FileListViewController: NSTableViewDataSource {
-    
+
     func numberOfRows(in tableView: NSTableView) -> Int {
         directoryState.items.count
+    }
+
+    func tableView(_ tableView: NSTableView, pasteboardWriterForRow row: Int) -> NSPasteboardWriting? {
+        guard row >= 0 && row < directoryState.items.count else { return nil }
+        let item = directoryState.items[row]
+        return item.url as NSURL
     }
 }
 
@@ -673,6 +684,60 @@ extension FileListViewController: NSTableViewDelegate {
         }
         
         return cell
+    }
+}
+
+// MARK: - DropTargetViewDelegate
+
+extension FileListViewController: DropTargetViewDelegate {
+
+    func dropTargetView(_ view: DropTargetView, draggingEntered sender: NSDraggingInfo) -> NSDragOperation {
+        if sender.draggingSourceOperationMask.contains(.copy) || sender.draggingSourceOperationMask.contains(.move) {
+            return .copy
+        }
+        return []
+    }
+
+    func dropTargetView(_ view: DropTargetView, draggingUpdated sender: NSDraggingInfo) -> NSDragOperation {
+        if sender.draggingSourceOperationMask.contains(.copy) || sender.draggingSourceOperationMask.contains(.move) {
+            return .copy
+        }
+        return []
+    }
+
+    func dropTargetView(_ view: DropTargetView, performDragOperation sender: NSDraggingInfo) -> Bool {
+        let pasteboard = sender.draggingPasteboard
+        guard let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL] else {
+            return false
+        }
+
+        let isCopy = !sender.draggingSourceOperationMask.contains(.move) ||
+                     sender.draggingSourceOperationMask.contains(.copy)
+
+        let destinationDir = directoryState.currentURL
+
+        for sourceURL in urls {
+            var destinationURL = destinationDir.appendingPathComponent(sourceURL.lastPathComponent)
+
+            // Handle name conflicts
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                destinationURL = uniqueURL(for: destinationURL)
+            }
+
+            do {
+                if isCopy {
+                    try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+                } else {
+                    try FileManager.default.moveItem(at: sourceURL, to: destinationURL)
+                }
+            } catch {
+                print("Error dragging \(sourceURL): \(error)")
+            }
+        }
+
+        directoryState.reload()
+        tableView.reloadData()
+        return true
     }
 }
 

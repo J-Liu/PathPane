@@ -46,11 +46,13 @@ class IconGridViewController: NSViewController {
     }
     
     // MARK: - Lifecycle
-    
+
     override func loadView() {
-        view = NSView()
-        view.wantsLayer = true
-        
+        let dropTargetView = DropTargetView()
+        dropTargetView.delegate = self
+        dropTargetView.wantsLayer = true
+        view = dropTargetView
+
         setupSubviews()
         setupConstraints()
         loadInitialData()
@@ -69,6 +71,9 @@ class IconGridViewController: NSViewController {
         scrollView.documentView = collectionView
         view.addSubview(scrollView)
         scrollView.translatesAutoresizingMaskIntoConstraints = false
+
+        // Register for drag and drop
+        view.registerForDraggedTypes([.fileURL])
     }
     
     private func setupConstraints() {
@@ -349,22 +354,28 @@ class IconGridViewController: NSViewController {
 // MARK: - NSCollectionViewDataSource
 
 extension IconGridViewController: NSCollectionViewDataSource {
-    
+
     func collectionView(_ collectionView: NSCollectionView, numberOfItemsInSection section: Int) -> Int {
         directoryState.items.count
     }
-    
+
     func collectionView(_ collectionView: NSCollectionView, itemForRepresentedObjectAt indexPath: IndexPath) -> NSCollectionViewItem {
         guard let item = collectionView.makeItem(withIdentifier: NSUserInterfaceItemIdentifier("IconGridItem"), for: indexPath) as? IconGridItem else {
             return NSCollectionViewItem()
         }
-        
+
         if indexPath.item < directoryState.items.count {
             let fileItem = directoryState.items[indexPath.item]
             item.configure(with: fileItem)
         }
-        
+
         return item
+    }
+
+    func collectionView(_ collectionView: NSCollectionView, pasteboardWriterForItemAt indexPath: IndexPath) -> NSPasteboardWriting? {
+        guard indexPath.item < directoryState.items.count else { return nil }
+        let item = directoryState.items[indexPath.item]
+        return item.url as NSURL
     }
 }
 
@@ -508,5 +519,59 @@ extension IconGridViewController: NSMenuDelegate {
             let item = directoryState.items[indexPath.item]
             NSWorkspace.shared.open([item.url], withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration())
         }
+    }
+}
+
+// MARK: - DropTargetViewDelegate
+
+extension IconGridViewController: DropTargetViewDelegate {
+
+    func dropTargetView(_ view: DropTargetView, draggingEntered sender: NSDraggingInfo) -> NSDragOperation {
+        if sender.draggingSourceOperationMask.contains(.copy) || sender.draggingSourceOperationMask.contains(.move) {
+            return .copy
+        }
+        return []
+    }
+
+    func dropTargetView(_ view: DropTargetView, draggingUpdated sender: NSDraggingInfo) -> NSDragOperation {
+        if sender.draggingSourceOperationMask.contains(.copy) || sender.draggingSourceOperationMask.contains(.move) {
+            return .copy
+        }
+        return []
+    }
+
+    func dropTargetView(_ view: DropTargetView, performDragOperation sender: NSDraggingInfo) -> Bool {
+        let pasteboard = sender.draggingPasteboard
+        guard let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL] else {
+            return false
+        }
+
+        let isCopy = !sender.draggingSourceOperationMask.contains(.move) ||
+                     sender.draggingSourceOperationMask.contains(.copy)
+
+        let destinationDir = directoryState.currentURL
+
+        for sourceURL in urls {
+            var destinationURL = destinationDir.appendingPathComponent(sourceURL.lastPathComponent)
+
+            // Handle name conflicts
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                destinationURL = uniqueURL(for: destinationURL)
+            }
+
+            do {
+                if isCopy {
+                    try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+                } else {
+                    try FileManager.default.moveItem(at: sourceURL, to: destinationURL)
+                }
+            } catch {
+                print("Error dragging \(sourceURL): \(error)")
+            }
+        }
+
+        directoryState.reload()
+        collectionView.reloadData()
+        return true
     }
 }
