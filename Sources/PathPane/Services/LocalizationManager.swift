@@ -3,15 +3,21 @@ import Foundation
 // MARK: - App Language
 
 enum AppLanguage: String, CaseIterable {
+    case system = "system"
     case english = "en"
-    case chinese = "zh"
+    case simplifiedChinese = "zh-Hans"
+    case traditionalChinese = "zh-Hant"
 
     var displayName: String {
         switch self {
+        case .system:
+            return "System"
         case .english:
             return "English"
-        case .chinese:
-            return "中文"
+        case .simplifiedChinese:
+            return "简体中文"
+        case .traditionalChinese:
+            return "繁體中文"
         }
     }
 }
@@ -33,13 +39,30 @@ class LocalizationManager {
                let language = AppLanguage(rawValue: rawValue) {
                 return language
             }
-            // Default to system language
-            let preferredLanguage = Locale.preferredLanguages.first ?? "en"
-            return preferredLanguage.hasPrefix("zh") ? .chinese : .english
+            // Default to system
+            return .system
         }
         set {
             UserDefaults.standard.set(newValue.rawValue, forKey: "settings.language")
         }
+    }
+
+    // The actual language used for localization (resolves system to actual language)
+    var effectiveLanguage: AppLanguage {
+        if currentLanguage == .system {
+            // Detect system language
+            let preferredLanguage = Locale.preferredLanguages.first ?? "en"
+            if preferredLanguage.hasPrefix("zh-Hans") {
+                return .simplifiedChinese
+            } else if preferredLanguage.hasPrefix("zh-Hant") || preferredLanguage.hasPrefix("zh-TW") || preferredLanguage.hasPrefix("zh-HK") {
+                return .traditionalChinese
+            } else if preferredLanguage.hasPrefix("zh") {
+                return .simplifiedChinese  // Default to Simplified for generic zh
+            } else {
+                return .english
+            }
+        }
+        return currentLanguage
     }
 
     // MARK: - Initialization
@@ -75,58 +98,72 @@ extension LocalizationManager {
         let strings: [String: [AppLanguage: String]] = [
             "settings.title": [
                 .english: "Settings",
-                .chinese: "设置"
+                .simplifiedChinese: "设置",
+                .traditionalChinese: "設定"
             ],
             "settings.tab.general": [
                 .english: "General",
-                .chinese: "通用"
+                .simplifiedChinese: "通用",
+                .traditionalChinese: "一般"
             ],
             "settings.tab.about": [
                 .english: "About",
-                .chinese: "关于"
+                .simplifiedChinese: "关于",
+                .traditionalChinese: "關於"
             ],
             "settings.theme": [
                 .english: "Theme",
-                .chinese: "主题"
+                .simplifiedChinese: "主题",
+                .traditionalChinese: "主題"
             ],
             "settings.theme.system": [
                 .english: "System",
-                .chinese: "跟随系统"
+                .simplifiedChinese: "跟随系统",
+                .traditionalChinese: "跟隨系統"
             ],
             "settings.theme.light": [
                 .english: "Light",
-                .chinese: "浅色"
+                .simplifiedChinese: "浅色",
+                .traditionalChinese: "淺色"
             ],
             "settings.theme.dark": [
                 .english: "Dark",
-                .chinese: "深色"
+                .simplifiedChinese: "深色",
+                .traditionalChinese: "深色"
             ],
             "settings.language": [
                 .english: "Language",
-                .chinese: "语言"
+                .simplifiedChinese: "语言",
+                .traditionalChinese: "語言"
             ],
             "settings.about.version": [
                 .english: "Version",
-                .chinese: "版本"
+                .simplifiedChinese: "版本",
+                .traditionalChinese: "版本"
             ],
             "settings.about.copyright": [
                 .english: "Copyright © 2026 Jia Liu",
-                .chinese: "版权所有 © 2026 Jia Liu"
+                .simplifiedChinese: "版权所有 © 2026 Jia Liu",
+                .traditionalChinese: "版權所有 © 2026 Jia Liu"
             ],
             "settings.about.license": [
                 .english: "License",
-                .chinese: "许可证"
+                .simplifiedChinese: "许可证",
+                .traditionalChinese: "許可證"
             ],
             "settings.about.notice": [
                 .english: "Notice",
-                .chinese: "声明"
+                .simplifiedChinese: "声明",
+                .traditionalChinese: "聲明"
             ],
             "OK": [
                 .english: "OK",
-                .chinese: "确定"
+                .simplifiedChinese: "确定",
+                .traditionalChinese: "確定"
             ]
         ]
 
-        return strings[key]?[currentLanguage] ?? key
+        let language = effectiveLanguage
+        return strings[key]?[language] ?? key
     }
 }
