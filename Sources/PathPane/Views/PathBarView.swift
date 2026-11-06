@@ -14,6 +14,8 @@ class PathBarView: NSView {
     
     var onPathSubmit: ((URL) -> Void)?
     
+    private lazy var completionWindow = PathCompletionWindow()
+    
     var isEditable: Bool {
         get { pathTextField.isEditable }
         set {
@@ -31,8 +33,8 @@ class PathBarView: NSView {
     
     // MARK: - UI Elements
     
-    private lazy var pathTextField: NSTextField = {
-        let textField = NSTextField()
+    private lazy var pathTextField: PathTextField = {
+        let textField = PathTextField()
         textField.isEditable = false
         textField.isBordered = false
         textField.backgroundColor = .clear
@@ -43,8 +45,20 @@ class PathBarView: NSView {
         textField.target = self
         textField.action = #selector(handlePathSubmit)
         textField.delegate = self
+        textField.wantsLayer = true
+        textField.layer?.cornerRadius = 4
+        textField.onKeyDown = { [weak self] event in
+            self?.handleKeyDown(event) ?? false
+        }
         return textField
     }()
+    
+    override func keyDown(with event: NSEvent) {
+        if handleKeyDown(event) {
+            return
+        }
+        super.keyDown(with: event)
+    }
     
     private lazy var containerView: NSView = {
         let view = NSView()
@@ -114,7 +128,91 @@ class PathBarView: NSView {
     
     func deactivateEditing() {
         isEditable = false
+        completionWindow.hide()
         window?.makeFirstResponder(nil)
+    }
+    
+    // MARK: - Path Completion
+    
+    private func updateCompletions(for input: String) {
+        // Expand tilde
+        let expanded = NSString(string: input).expandingTildeInPath
+        
+        // Get parent directory and prefix
+        let url = URL(fileURLWithPath: expanded)
+        let parentURL = url.deletingLastPathComponent()
+        let prefix = url.lastPathComponent
+        
+        // Check if parent exists
+        guard FileManager.default.fileExists(atPath: parentURL.path) else {
+            completionWindow.hide()
+            return
+        }
+        
+        // List contents of parent directory
+        do {
+            let contents = try FileManager.default.contentsOfDirectory(
+                at: parentURL,
+                includingPropertiesForKeys: [.isDirectoryKey],
+                options: [.skipsHiddenFiles]
+            )
+            
+            // Filter by prefix
+            let matching = contents
+                .filter { $0.lastPathComponent.lowercased().hasPrefix(prefix.lowercased()) }
+                .map { $0.lastPathComponent }
+            
+            // Show completions
+            if !matching.isEmpty {
+                let textFieldRect = pathTextField.bounds
+                completionWindow.showCompletions(matching, relativeTo: textFieldRect, in: pathTextField)
+                
+                completionWindow.onCompletionSelected = { [weak self] completion in
+                    self?.insertCompletion(completion, for: input)
+                }
+            } else {
+                completionWindow.hide()
+            }
+        } catch {
+            completionWindow.hide()
+        }
+    }
+    
+    private func insertCompletion(_ completion: String, for input: String) {
+        let expanded = NSString(string: input).expandingTildeInPath
+        let url = URL(fileURLWithPath: expanded)
+        let parentPath = url.deletingLastPathComponent().path
+        
+        // Build new path
+        let newPath = parentPath + "/" + completion
+        pathTextField.stringValue = newPath
+        
+        // Move cursor to end
+        if let editor = pathTextField.currentEditor() {
+            editor.selectedRange = NSRange(location: newPath.count, length: 0)
+        }
+    }
+    
+    func handleKeyDown(_ event: NSEvent) -> Bool {
+        guard pathTextField.isEditable else { return false }
+        
+        if event.keyCode == 125 { // Down arrow
+            completionWindow.selectNext()
+            return true
+        } else if event.keyCode == 126 { // Up arrow
+            completionWindow.selectPrevious()
+            return true
+        } else if event.keyCode == 36 { // Return
+            if completionWindow.isVisible {
+                completionWindow.confirmSelection()
+                return true
+            }
+        } else if event.keyCode == 53 { // Escape
+            completionWindow.hide()
+            return true
+        }
+        
+        return false
     }
     
     func textField() -> NSTextField {
@@ -157,13 +255,19 @@ class PathBarView: NSView {
 
 extension PathBarView: NSTextFieldDelegate {
     
+    func controlTextDidChange(_ obj: Notification) {
+        // Update completions as user types
+        let currentText = pathTextField.stringValue
+        updateCompletions(for: currentText)
+    }
+    
     func controlTextDidEndEditing(_ obj: Notification) {
         // Handle loss of focus
         if !pathTextField.isEditable {
             return
         }
         
-        // Restore non-editable state if user clicked elsewhere
-        // The action will handle Enter key
+        // Hide completion window
+        completionWindow.hide()
     }
 }
