@@ -98,7 +98,10 @@ class FileListViewController: NSViewController {
         tableView.delegate = self
         tableView.target = self
         tableView.doubleAction = #selector(handleDoubleClick)
-        
+
+        // Setup context menu
+        tableView.menu = buildContextMenu()
+
         // Add to scroll view
         scrollView.documentView = tableView
         view.addSubview(scrollView)
@@ -153,6 +156,198 @@ class FileListViewController: NSViewController {
                 tableView.addTrackingArea(area)
             }
         }
+    }
+    
+    // MARK: - Context Menu
+    
+    private func buildContextMenu() -> NSMenu {
+        let menu = NSMenu()
+        menu.delegate = self
+        
+        menu.addItem(
+            NSMenuItem(
+                title: "Open",
+                action: #selector(openSelectedItems),
+                keyEquivalent: ""
+            )
+        )
+        
+        let openWithItem = NSMenuItem(
+            title: "Open With",
+            action: nil,
+            keyEquivalent: ""
+        )
+        openWithItem.submenu = NSMenu()
+        menu.addItem(openWithItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        menu.addItem(
+            NSMenuItem(
+                title: "Cut",
+                action: #selector(cutSelectedItems),
+                keyEquivalent: ""
+            )
+        )
+        
+        menu.addItem(
+            NSMenuItem(
+                title: "Copy",
+                action: #selector(copySelectedItems),
+                keyEquivalent: ""
+            )
+        )
+        
+        menu.addItem(
+            NSMenuItem(
+                title: "Paste",
+                action: #selector(pasteItems),
+                keyEquivalent: ""
+            )
+        )
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        menu.addItem(
+            NSMenuItem(
+                title: "Rename",
+                action: #selector(renameSelectedItem),
+                keyEquivalent: ""
+            )
+        )
+        
+        menu.addItem(
+            NSMenuItem(
+                title: "Move to Trash",
+                action: #selector(moveToTrash),
+                keyEquivalent: ""
+            )
+        )
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        menu.addItem(
+            NSMenuItem(
+                title: "Get Info",
+                action: #selector(getInfoForSelectedItem),
+                keyEquivalent: ""
+            )
+        )
+        
+        return menu
+    }
+    
+    @objc private func openSelectedItems() {
+        let selectedRows = tableView.selectedRowIndexes
+        guard !selectedRows.isEmpty else { return }
+        
+        for row in selectedRows {
+            guard row < directoryState.items.count else { continue }
+            let item = directoryState.items[row]
+            
+            if item.isDirectory {
+                directoryState.load(url: item.url) { [weak self] result in
+                    DispatchQueue.main.async {
+                        self?.tableView.reloadData()
+                    }
+                }
+                break // Only open one directory
+            } else {
+                NSWorkspace.shared.open(item.url)
+            }
+        }
+    }
+    
+    @objc private func cutSelectedItems() {
+        copySelectedItems()
+        // Mark as cut operation - will be handled in paste
+        UserDefaults.standard.set(true, forKey: "PathPane_IsCutOperation")
+    }
+    
+    @objc private func copySelectedItems() {
+        let selectedRows = tableView.selectedRowIndexes
+        guard !selectedRows.isEmpty else { return }
+        
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        
+        var urls: [URL] = []
+        for row in selectedRows {
+            guard row < directoryState.items.count else { continue }
+            urls.append(directoryState.items[row].url)
+        }
+        
+        pasteboard.writeObjects(urls as [NSURL])
+        UserDefaults.standard.set(false, forKey: "PathPane_IsCutOperation")
+    }
+    
+    @objc private func pasteItems() {
+        let pasteboard = NSPasteboard.general
+        guard let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL] else {
+            return
+        }
+        
+        let isCut = UserDefaults.standard.bool(forKey: "PathPane_IsCutOperation")
+        let destinationDir = directoryState.currentURL
+        
+        for sourceURL in urls {
+            let destinationURL = destinationDir.appendingPathComponent(sourceURL.lastPathComponent)
+            
+            do {
+                if isCut {
+                    try FileManager.default.moveItem(at: sourceURL, to: destinationURL)
+                } else {
+                    try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+                }
+            } catch {
+                print("Error pasting \(sourceURL): \(error)")
+            }
+        }
+        
+        // Clear pasteboard after cut operation
+        if isCut {
+            pasteboard.clearContents()
+            UserDefaults.standard.set(false, forKey: "PathPane_IsCutOperation")
+        }
+        
+        directoryState.reload()
+        tableView.reloadData()
+    }
+    
+    @objc private func renameSelectedItem() {
+        let selectedRow = tableView.selectedRow
+        guard selectedRow >= 0, selectedRow < directoryState.items.count else { return }
+        
+        // TODO: Implement rename dialog or inline editing
+        print("Rename: \(directoryState.items[selectedRow].name)")
+    }
+    
+    @objc private func moveToTrash() {
+        let selectedRows = tableView.selectedRowIndexes
+        guard !selectedRows.isEmpty else { return }
+        
+        for row in selectedRows {
+            guard row < directoryState.items.count else { continue }
+            let item = directoryState.items[row]
+            
+            do {
+                var resultURL: NSURL?
+                try FileManager.default.trashItem(at: item.url, resultingItemURL: &resultURL)
+            } catch {
+                print("Error moving to trash \(item.url): \(error)")
+            }
+        }
+        
+        directoryState.reload()
+        tableView.reloadData()
+    }
+    
+    @objc private func getInfoForSelectedItem() {
+        let selectedRow = tableView.selectedRow
+        guard selectedRow >= 0, selectedRow < directoryState.items.count else { return }
+        
+        let item = directoryState.items[selectedRow]
+        NSWorkspace.shared.activateFileViewerSelecting([item.url])
     }
     
     // MARK: - Navigation
@@ -413,5 +608,82 @@ extension FileListViewController: NSTableViewDelegate {
         }
         
         return cell
+    }
+}
+
+// MARK: - NSMenuDelegate
+
+extension FileListViewController: NSMenuDelegate {
+    
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        let selectedRows = tableView.selectedRowIndexes
+        let hasSelection = !selectedRows.isEmpty
+        let hasSingleSelection = selectedRows.count == 1
+        
+        // Update menu items based on selection
+        for item in menu.items {
+            switch item.title {
+            case "Open":
+                item.isEnabled = hasSelection
+            case "Open With":
+                item.isEnabled = hasSingleSelection && !selectedRows.contains(where: { $0 < directoryState.items.count && directoryState.items[$0].isDirectory })
+                // Build "Open With" submenu if single file selected
+                if item.isEnabled, let submenu = item.submenu {
+                    submenu.removeAllItems()
+                    if let row = selectedRows.first, row < directoryState.items.count {
+                        let fileItem = directoryState.items[row]
+                        buildOpenWithMenu(for: fileItem, in: submenu)
+                    }
+                }
+            case "Cut", "Copy":
+                item.isEnabled = hasSelection
+            case "Paste":
+                let pasteboard = NSPasteboard.general
+                item.isEnabled = pasteboard.canReadItem(withDataConformingToTypes: [NSPasteboard.PasteboardType.fileURL.rawValue])
+            case "Rename":
+                item.isEnabled = hasSingleSelection
+            case "Move to Trash":
+                item.isEnabled = hasSelection
+            case "Get Info":
+                item.isEnabled = hasSingleSelection
+            default:
+                break
+            }
+        }
+    }
+    
+    private func buildOpenWithMenu(for item: FileItem, in menu: NSMenu) {
+        guard !item.isDirectory else { return }
+        
+        // Get applications that can open this file
+        let urls = NSWorkspace.shared.urlsForApplications(toOpen: item.url)
+        
+        if urls.isEmpty {
+            let item = NSMenuItem(title: "No Applications Available", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+        } else {
+            for appURL in urls {
+                let appName = appURL.deletingLastPathComponent().lastPathComponent
+                let menuItem = NSMenuItem(
+                    title: appName,
+                    action: #selector(openWithApplication(_:)),
+                    keyEquivalent: ""
+                )
+                menuItem.representedObject = appURL
+                menu.addItem(menuItem)
+            }
+        }
+    }
+    
+    @objc private func openWithApplication(_ sender: NSMenuItem) {
+        guard let appURL = sender.representedObject as? URL else { return }
+        
+        let selectedRows = tableView.selectedRowIndexes
+        for row in selectedRows {
+            guard row < directoryState.items.count else { continue }
+            let item = directoryState.items[row]
+            NSWorkspace.shared.open([item.url], withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration())
+        }
     }
 }
