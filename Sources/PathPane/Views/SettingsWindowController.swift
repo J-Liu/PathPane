@@ -62,6 +62,18 @@ class SettingsWindowController: NSWindowController {
         recreateTabs()
 
         contentView.addSubview(tabView)
+
+        // Listen for language changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(languageDidChange),
+            name: .languageChanged,
+            object: nil
+        )
+    }
+
+    @objc private func languageDidChange() {
+        recreateTabs()
     }
 
     private func recreateTabs() {
@@ -72,15 +84,18 @@ class SettingsWindowController: NSWindowController {
 
         generalTab = createGeneralTab()
         let generalItem = NSTabViewItem(identifier: "general")
-        generalItem.label = "General"
+        generalItem.label = L("settings.tab.general")
         generalItem.view = generalTab
         tabView.addTabViewItem(generalItem)
 
         aboutTab = createAboutTab()
         let aboutItem = NSTabViewItem(identifier: "about")
-        aboutItem.label = "About"
+        aboutItem.label = L("settings.tab.about")
         aboutItem.view = aboutTab
         tabView.addTabViewItem(aboutItem)
+
+        // Update window title
+        window?.title = L("settings.title")
     }
 
     // MARK: - Public Methods
@@ -132,11 +147,64 @@ class SettingsWindowController: NSWindowController {
     private func createGeneralTab() -> NSView {
         let stack = makeVerticalStack()
 
-        // Placeholder - will be implemented in next commit
-        let placeholderLabel = NSTextField(labelWithString: "General settings will be here")
-        stack.addArrangedSubview(placeholderLabel)
+        // Row: Theme
+        let themePopup = NSPopUpButton()
+        let themes: [(key: String, value: Int)] = [
+            ("settings.theme.system", 0),
+            ("settings.theme.light", 1),
+            ("settings.theme.dark", 2)
+        ]
+        for theme in themes {
+            themePopup.addItem(withTitle: L(theme.key))
+            themePopup.lastItem?.representedObject = theme.value
+        }
+        let savedTheme = UserDefaults.standard.integer(forKey: "settings.theme")
+        themePopup.selectItem(at: savedTheme)
+        themePopup.target = self
+        themePopup.action = #selector(themeChanged(_:))
+        themePopup.widthAnchor.constraint(equalToConstant: controlWidth).isActive = true
+        stack.addArrangedSubview(makeRow(label: L("settings.theme"), control: themePopup))
+
+        // Row: Language
+        let languagePopup = NSPopUpButton()
+        for language in AppLanguage.allCases {
+            languagePopup.addItem(withTitle: language.displayName)
+            languagePopup.lastItem?.representedObject = language
+        }
+        let current = LocalizationManager.shared.currentLanguage
+        if let index = AppLanguage.allCases.firstIndex(of: current) {
+            languagePopup.selectItem(at: index)
+        }
+        languagePopup.target = self
+        languagePopup.action = #selector(languageChanged(_:))
+        languagePopup.widthAnchor.constraint(equalToConstant: controlWidth).isActive = true
+        stack.addArrangedSubview(makeRow(label: L("settings.language"), control: languagePopup))
 
         return wrapInTopAlignedContainer(stack)
+    }
+
+    // MARK: - Actions
+
+    @objc private func themeChanged(_ sender: NSPopUpButton) {
+        guard let value = sender.selectedItem?.representedObject as? Int else { return }
+        UserDefaults.standard.set(value, forKey: "settings.theme")
+        applyTheme(value)
+    }
+
+    private func applyTheme(_ value: Int) {
+        switch value {
+        case 1:
+            NSApp.appearance = NSAppearance(named: .aqua)
+        case 2:
+            NSApp.appearance = NSAppearance(named: .darkAqua)
+        default:
+            NSApp.appearance = nil
+        }
+    }
+
+    @objc private func languageChanged(_ sender: NSPopUpButton) {
+        guard let selected = sender.selectedItem?.representedObject as? AppLanguage else { return }
+        LocalizationManager.shared.setLanguage(selected)
     }
 
     private func createAboutTab() -> NSView {
