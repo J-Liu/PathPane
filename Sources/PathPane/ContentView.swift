@@ -9,6 +9,14 @@ class ContentViewController: NSViewController {
     private let directoryState: DirectoryState
     var fileListViewController: FileListViewController?
     
+    // MARK: - UI Elements
+    
+    private lazy var pathBarView: PathBarView = {
+        let view = PathBarView()
+        view.currentURL = directoryState.currentURL
+        return view
+    }()
+    
     // MARK: - Initialization
     
     init(directoryState: DirectoryState) {
@@ -34,6 +42,11 @@ class ContentViewController: NSViewController {
     // MARK: - Setup
     
     private func setupSubviews() {
+        // Add path bar
+        view.addSubview(pathBarView)
+        pathBarView.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Add file list
         let fileVC = FileListViewController(directoryState: directoryState)
         addChild(fileVC)
         view.addSubview(fileVC.view)
@@ -45,10 +58,20 @@ class ContentViewController: NSViewController {
         guard let fileVC = fileListViewController else { return }
         
         NSLayoutConstraint.activate([
-            fileVC.view.topAnchor.constraint(equalTo: view.topAnchor),
+            pathBarView.topAnchor.constraint(equalTo: view.topAnchor),
+            pathBarView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            pathBarView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            
+            fileVC.view.topAnchor.constraint(equalTo: pathBarView.bottomAnchor),
             fileVC.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             fileVC.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             fileVC.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+    }
+    
+    // MARK: - Public Methods
+    
+    func updatePathBar() {
+        pathBarView.currentURL = directoryState.currentURL
     }
 }

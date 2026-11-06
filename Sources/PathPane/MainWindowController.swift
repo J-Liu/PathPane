@@ -91,6 +91,7 @@ class MainWindowController: NSWindowController {
         if let fileVC = contentViewController as? ContentViewController,
            let listVC = fileVC.fileListViewController {
             listVC.reloadData()
+            fileVC.updatePathBar()
         }
     }
 }
