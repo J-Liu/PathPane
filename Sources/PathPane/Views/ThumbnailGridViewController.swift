@@ -235,7 +235,12 @@ class ThumbnailGridViewController: NSViewController {
         let destinationDir = directoryState.currentURL
 
         for sourceURL in urls {
-            let destinationURL = destinationDir.appendingPathComponent(sourceURL.lastPathComponent)
+            var destinationURL = destinationDir.appendingPathComponent(sourceURL.lastPathComponent)
+
+            // Handle name conflicts
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                destinationURL = uniqueURL(for: destinationURL)
+            }
 
             do {
                 if isCut {
@@ -255,6 +260,23 @@ class ThumbnailGridViewController: NSViewController {
 
         directoryState.reload()
         collectionView.reloadData()
+    }
+
+    private func uniqueURL(for url: URL) -> URL {
+        let directory = url.deletingLastPathComponent()
+        let fileName = url.deletingPathExtension().lastPathComponent
+        let fileExtension = url.pathExtension
+
+        var newURL = url
+        var counter = 1
+
+        while FileManager.default.fileExists(atPath: newURL.path) {
+            let newFileName = counter == 1 ? "\(fileName) copy" : "\(fileName) copy \(counter)"
+            newURL = directory.appendingPathComponent(newFileName).appendingPathExtension(fileExtension)
+            counter += 1
+        }
+
+        return newURL
     }
 
     @objc private func renameSelectedItem() {

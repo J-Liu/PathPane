@@ -286,13 +286,18 @@ class FileListViewController: NSViewController {
         guard let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL] else {
             return
         }
-        
+
         let isCut = UserDefaults.standard.bool(forKey: "PathPane_IsCutOperation")
         let destinationDir = directoryState.currentURL
-        
+
         for sourceURL in urls {
-            let destinationURL = destinationDir.appendingPathComponent(sourceURL.lastPathComponent)
-            
+            var destinationURL = destinationDir.appendingPathComponent(sourceURL.lastPathComponent)
+
+            // Handle name conflicts
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                destinationURL = uniqueURL(for: destinationURL)
+            }
+
             do {
                 if isCut {
                     try FileManager.default.moveItem(at: sourceURL, to: destinationURL)
@@ -303,17 +308,34 @@ class FileListViewController: NSViewController {
                 print("Error pasting \(sourceURL): \(error)")
             }
         }
-        
+
         // Clear pasteboard after cut operation
         if isCut {
             pasteboard.clearContents()
             UserDefaults.standard.set(false, forKey: "PathPane_IsCutOperation")
         }
-        
+
         directoryState.reload()
         tableView.reloadData()
     }
-    
+
+    private func uniqueURL(for url: URL) -> URL {
+        let directory = url.deletingLastPathComponent()
+        let fileName = url.deletingPathExtension().lastPathComponent
+        let fileExtension = url.pathExtension
+
+        var newURL = url
+        var counter = 1
+
+        while FileManager.default.fileExists(atPath: newURL.path) {
+            let newFileName = counter == 1 ? "\(fileName) copy" : "\(fileName) copy \(counter)"
+            newURL = directory.appendingPathComponent(newFileName).appendingPathExtension(fileExtension)
+            counter += 1
+        }
+
+        return newURL
+    }
+
     @objc private func renameSelectedItem() {
         let selectedRow = tableView.selectedRow
         guard selectedRow >= 0, selectedRow < directoryState.items.count else { return }
