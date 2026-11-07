@@ -12,6 +12,10 @@ class DirectoryState {
 
     typealias LoadCompletion = (Result<[FileItem], Error>) -> Void
 
+    // MARK: - Notification
+
+    static let itemsDidChangeNotification = Notification.Name("DirectoryStateItemsDidChange")
+
     // MARK: - Properties
 
     private(set) var currentURL: URL
@@ -85,6 +89,7 @@ class DirectoryState {
                 await MainActor.run {
                     self.items = loadedItems
                     self.loadCompletion?(.success(loadedItems))
+                    NotificationCenter.default.post(name: Self.itemsDidChangeNotification, object: self)
                 }
             } catch {
                 await MainActor.run {
@@ -117,6 +122,7 @@ class DirectoryState {
                 await MainActor.run {
                     self.items = loadedItems
                     self.loadCompletion?(.success(loadedItems))
+                    NotificationCenter.default.post(name: Self.itemsDidChangeNotification, object: self)
                 }
             } catch {
                 await MainActor.run {

@@ -55,10 +55,18 @@ class ContentViewController: NSViewController {
         view = NSView()
         view.wantsLayer = true
         view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        
+
         setupSubviews()
         setupConstraints()
         switchToViewMode(settings.viewMode)
+
+        // Observe directory changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(directoryItemsDidChange),
+            name: DirectoryState.itemsDidChangeNotification,
+            object: directoryState
+        )
     }
     
     // MARK: - Setup
@@ -149,7 +157,7 @@ class ContentViewController: NSViewController {
     }
     
     // MARK: - Navigation
-    
+
     private func navigateToURL(_ url: URL) {
         directoryState.load(url: url) { [weak self] result in
             DispatchQueue.main.async {
@@ -157,6 +165,11 @@ class ContentViewController: NSViewController {
                 self?.reloadCurrentView()
             }
         }
+    }
+
+    @objc private func directoryItemsDidChange() {
+        updatePathBar()
+        reloadCurrentView()
     }
     
     func reloadCurrentView() {
