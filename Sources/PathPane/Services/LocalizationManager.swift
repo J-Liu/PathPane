@@ -168,6 +168,51 @@ extension LocalizationManager {
                 .english: "Move to Trash Failed",
                 .simplifiedChinese: "移至废纸篓失败",
                 .traditionalChinese: "移至垃圾桶失敗"
+            ],
+            "info.kind": [
+                .english: "Kind:",
+                .simplifiedChinese: "类型：",
+                .traditionalChinese: "類型："
+            ],
+            "info.size": [
+                .english: "Size:",
+                .simplifiedChinese: "大小：",
+                .traditionalChinese: "大小："
+            ],
+            "info.created": [
+                .english: "Created:",
+                .simplifiedChinese: "创建时间：",
+                .traditionalChinese: "建立時間："
+            ],
+            "info.modified": [
+                .english: "Modified:",
+                .simplifiedChinese: "修改时间：",
+                .traditionalChinese: "修改時間："
+            ],
+            "info.location": [
+                .english: "Location:",
+                .simplifiedChinese: "位置：",
+                .traditionalChinese: "位置："
+            ],
+            "info.kind.folder": [
+                .english: "Folder",
+                .simplifiedChinese: "文件夹",
+                .traditionalChinese: "檔案夾"
+            ],
+            "info.kind.file": [
+                .english: "Document",
+                .simplifiedChinese: "文件",
+                .traditionalChinese: "文件"
+            ],
+            "info.kind.unknown": [
+                .english: "Unknown",
+                .simplifiedChinese: "未知",
+                .traditionalChinese: "未知"
+            ],
+            "info.kind.calculating": [
+                .english: "Calculating...",
+                .simplifiedChinese: "计算中...",
+                .traditionalChinese: "計算中..."
             ]
         ]
 

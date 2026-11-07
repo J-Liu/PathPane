@@ -108,9 +108,10 @@ class IconGridViewController: NSViewController {
             NSMenuItem(
                 title: "Open",
                 action: #selector(openSelectedItems),
-                keyEquivalent: ""
+                keyEquivalent: "o"
             )
         )
+        menu.items.last?.keyEquivalentModifierMask = .command
 
         let openWithItem = NSMenuItem(
             title: "Open With",
@@ -126,25 +127,28 @@ class IconGridViewController: NSViewController {
             NSMenuItem(
                 title: "Cut",
                 action: #selector(cutSelectedItems),
-                keyEquivalent: ""
+                keyEquivalent: "x"
             )
         )
+        menu.items.last?.keyEquivalentModifierMask = .command
 
         menu.addItem(
             NSMenuItem(
                 title: "Copy",
                 action: #selector(copySelectedItems),
-                keyEquivalent: ""
+                keyEquivalent: "c"
             )
         )
+        menu.items.last?.keyEquivalentModifierMask = .command
 
         menu.addItem(
             NSMenuItem(
                 title: "Paste",
                 action: #selector(pasteItems),
-                keyEquivalent: ""
+                keyEquivalent: "v"
             )
         )
+        menu.items.last?.keyEquivalentModifierMask = .command
 
         menu.addItem(NSMenuItem.separator())
 
@@ -170,9 +174,10 @@ class IconGridViewController: NSViewController {
             NSMenuItem(
                 title: "Get Info",
                 action: #selector(getInfoForSelectedItem),
-                keyEquivalent: ""
+                keyEquivalent: "i"
             )
         )
+        menu.items.last?.keyEquivalentModifierMask = .command
 
         return menu
     }
@@ -360,7 +365,9 @@ class IconGridViewController: NSViewController {
         guard let indexPath = selectedIndexPaths.first, indexPath.item < directoryState.items.count else { return }
 
         let item = directoryState.items[indexPath.item]
-        NSWorkspace.shared.activateFileViewerSelecting([item.url])
+        let infoWindow = InfoWindowController(fileItem: item)
+        infoWindow.showWindow(nil)
+        infoWindow.window?.center()
     }
 }
 

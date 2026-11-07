@@ -171,15 +171,16 @@ class FileListViewController: NSViewController {
     private func buildContextMenu() -> NSMenu {
         let menu = NSMenu()
         menu.delegate = self
-        
+
         menu.addItem(
             NSMenuItem(
                 title: "Open",
                 action: #selector(openSelectedItems),
-                keyEquivalent: ""
+                keyEquivalent: "o"
             )
         )
-        
+        menu.items.last?.keyEquivalentModifierMask = .command
+
         let openWithItem = NSMenuItem(
             title: "Open With",
             action: nil,
@@ -187,35 +188,38 @@ class FileListViewController: NSViewController {
         )
         openWithItem.submenu = NSMenu()
         menu.addItem(openWithItem)
-        
+
         menu.addItem(NSMenuItem.separator())
-        
+
         menu.addItem(
             NSMenuItem(
                 title: "Cut",
                 action: #selector(cutSelectedItems),
-                keyEquivalent: ""
+                keyEquivalent: "x"
             )
         )
-        
+        menu.items.last?.keyEquivalentModifierMask = .command
+
         menu.addItem(
             NSMenuItem(
                 title: "Copy",
                 action: #selector(copySelectedItems),
-                keyEquivalent: ""
+                keyEquivalent: "c"
             )
         )
-        
+        menu.items.last?.keyEquivalentModifierMask = .command
+
         menu.addItem(
             NSMenuItem(
                 title: "Paste",
                 action: #selector(pasteItems),
-                keyEquivalent: ""
+                keyEquivalent: "v"
             )
         )
-        
+        menu.items.last?.keyEquivalentModifierMask = .command
+
         menu.addItem(NSMenuItem.separator())
-        
+
         menu.addItem(
             NSMenuItem(
                 title: "Rename",
@@ -223,7 +227,7 @@ class FileListViewController: NSViewController {
                 keyEquivalent: ""
             )
         )
-        
+
         menu.addItem(
             NSMenuItem(
                 title: "Move to Trash",
@@ -231,17 +235,18 @@ class FileListViewController: NSViewController {
                 keyEquivalent: ""
             )
         )
-        
+
         menu.addItem(NSMenuItem.separator())
-        
+
         menu.addItem(
             NSMenuItem(
                 title: "Get Info",
                 action: #selector(getInfoForSelectedItem),
-                keyEquivalent: ""
+                keyEquivalent: "i"
             )
         )
-        
+        menu.items.last?.keyEquivalentModifierMask = .command
+
         return menu
     }
     
@@ -428,9 +433,11 @@ class FileListViewController: NSViewController {
     @objc private func getInfoForSelectedItem() {
         let selectedRow = tableView.selectedRow
         guard selectedRow >= 0, selectedRow < directoryState.items.count else { return }
-        
+
         let item = directoryState.items[selectedRow]
-        NSWorkspace.shared.activateFileViewerSelecting([item.url])
+        let infoWindow = InfoWindowController(fileItem: item)
+        infoWindow.showWindow(nil)
+        infoWindow.window?.center()
     }
     
     // MARK: - Navigation
