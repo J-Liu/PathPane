@@ -66,7 +66,10 @@ class MainWindowController: NSWindowController {
         
         // Set window delegate
         window.delegate = self
-        
+
+        // Setup keyboard handlers
+        setupKeyHandlers()
+
         // Restore dual pane mode
         isDualPaneMode = SettingsManager.shared.dualPaneMode
         
@@ -247,6 +250,19 @@ class MainWindowController: NSWindowController {
     @objc func toggleHiddenFiles(_ sender: Any?) {
         tabManager.activeTab?.directoryState.showHiddenFiles.toggle()
         reloadCurrentView()
+    }
+
+    // MARK: - Keyboard Handlers
+
+    private func setupKeyHandlers() {
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self = self, self.window?.isKeyWindow == true else { return event }
+            if event.modifierFlags.contains(.command) && event.keyCode == 13 { // Cmd+W
+                self.window?.close()
+                return nil
+            }
+            return event
+        }
     }
 
     // MARK: - Network Connections
