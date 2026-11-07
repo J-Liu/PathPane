@@ -143,12 +143,22 @@ class MainWindowController: NSWindowController {
     private func updateActiveTab() {
         guard let dualPane = dualPaneContainer,
               let activeTab = tabManager.activeTab else { return }
-        
+
+        // Update tab title
+        if let tabBarView = tabBarView {
+            let tabViews = tabBarView.subviews.compactMap { $0 as? TabItemView }
+            for (index, tabView) in tabViews.enumerated() {
+                if index == tabManager.activeTabIndex {
+                    tabView.updateTitle(activeTab.directoryState.currentURL.lastPathComponent)
+                }
+            }
+        }
+
         // Create new left content view controller for active tab
         let leftVC = ContentViewController(directoryState: activeTab.directoryState)
         leftContentViewController = leftVC
         dualPane.leftContentView = leftVC.view
-        
+
         // Create right content view controller for dual pane mode if needed
         if isDualPaneMode {
             let rightDirectoryState = DirectoryState(initialURL: activeTab.directoryState.currentURL)
@@ -156,7 +166,7 @@ class MainWindowController: NSWindowController {
             rightContentViewController = rightVC
             dualPane.rightContentView = rightVC.view
         }
-        
+
         // Update tab bar
         updateTabBar()
     }
@@ -258,7 +268,16 @@ class MainWindowController: NSWindowController {
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self = self, self.window?.isKeyWindow == true else { return event }
             if event.modifierFlags.contains(.command) && event.keyCode == 13 { // Cmd+W
-                self.window?.close()
+                // Close current tab or window
+                if self.tabManager.tabs.count > 1 {
+                    self.closeCurrentTab()
+                } else {
+                    self.window?.close()
+                }
+                return nil
+            }
+            if event.modifierFlags.contains(.command) && event.keyCode == 17 { // Cmd+T
+                self.createNewTab()
                 return nil
             }
             return event
