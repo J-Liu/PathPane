@@ -342,6 +342,8 @@ class ThumbnailGridViewController: NSViewController {
         let selectedIndexPaths = collectionView.selectionIndexPaths
         guard !selectedIndexPaths.isEmpty else { return }
 
+        var errors: [String] = []
+
         for indexPath in selectedIndexPaths {
             guard indexPath.item < directoryState.items.count else { continue }
             let item = directoryState.items[indexPath.item]
@@ -350,12 +352,20 @@ class ThumbnailGridViewController: NSViewController {
                 var resultURL: NSURL?
                 try FileManager.default.trashItem(at: item.url, resultingItemURL: &resultURL)
             } catch {
-                print("Error moving to trash \(item.url): \(error)")
+                errors.append("\(item.name): \(error.localizedDescription)")
             }
         }
 
+        if !errors.isEmpty {
+            let alert = NSAlert()
+            alert.messageText = L("error.trash.title")
+            alert.informativeText = errors.joined(separator: "\n")
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: L("OK"))
+            alert.beginSheetModal(for: view.window!)
+        }
+
         directoryState.reload()
-        collectionView.reloadData()
     }
 
     @objc private func getInfoForSelectedItem() {

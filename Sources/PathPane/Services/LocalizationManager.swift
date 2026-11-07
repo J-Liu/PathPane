@@ -163,6 +163,11 @@ extension LocalizationManager {
                 .english: "OK",
                 .simplifiedChinese: "确定",
                 .traditionalChinese: "確定"
+            ],
+            "error.trash.title": [
+                .english: "Move to Trash Failed",
+                .simplifiedChinese: "移至废纸篓失败",
+                .traditionalChinese: "移至垃圾桶失敗"
             ]
         ]
 
