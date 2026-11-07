@@ -64,7 +64,7 @@ class ContentViewController: NSViewController {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(directoryItemsDidChange),
-            name: DirectoryState.itemsDidChangeNotification,
+            name: .directoryStateItemsDidChange,
             object: directoryState
         )
     }

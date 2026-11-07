@@ -85,6 +85,7 @@ class TabBarView: NSView {
             let tabView = TabItemView(title: tab.directoryState.currentURL.lastPathComponent, index: index)
             tabView.isActive = index == activeIndex
             tabView.delegate = self
+            tabView.directoryState = tab.directoryState
             tabViews.append(tabView)
             stackView.addArrangedSubview(tabView)
         }
@@ -120,6 +121,24 @@ class TabItemView: NSView {
     var isActive: Bool = false {
         didSet {
             updateAppearance()
+        }
+    }
+
+    var directoryState: DirectoryState? {
+        didSet {
+            // Remove old observer
+            if let oldState = oldValue {
+                NotificationCenter.default.removeObserver(self, name: .directoryStateURLDidChange, object: oldState)
+            }
+            // Add new observer
+            if let newState = directoryState {
+                NotificationCenter.default.addObserver(
+                    self,
+                    selector: #selector(urlDidChange),
+                    name: .directoryStateURLDidChange,
+                    object: newState
+                )
+            }
         }
     }
 
@@ -184,15 +203,15 @@ class TabItemView: NSView {
         layer?.cornerRadius = 6
 
         titleLabel.stringValue = title
-        containerStack.addArrangedSubview(titleLabel)
         containerStack.addArrangedSubview(closeButton)
+        containerStack.addArrangedSubview(titleLabel)
 
         addSubview(containerStack)
 
         NSLayoutConstraint.activate([
             containerStack.topAnchor.constraint(equalTo: topAnchor, constant: 4),
-            containerStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
-            containerStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
+            containerStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
+            containerStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
             containerStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -4),
 
             widthAnchor.constraint(greaterThanOrEqualToConstant: 100),
@@ -229,6 +248,18 @@ class TabItemView: NSView {
 
     @objc private func closeTab() {
         delegate?.tabItemView(self, didRequestCloseAt: index)
+    }
+
+    @objc private func urlDidChange() {
+        if let state = directoryState {
+            updateTitle(state.currentURL.lastPathComponent)
+        }
+    }
+
+    deinit {
+        if let state = directoryState {
+            NotificationCenter.default.removeObserver(self, name: .directoryStateURLDidChange, object: state)
+        }
     }
 
     // MARK: - Mouse Events

@@ -20,8 +20,8 @@ class TabManager {
     // MARK: - Initialization
     
     private init() {
-        // Restore last visited directory or use home directory
-        let initialURL = SettingsManager.shared.lastVisitedDirectory ?? FileManager.default.homeDirectoryForCurrentUser
+        // Restore last visited directory or use default new tab location
+        let initialURL = SettingsManager.shared.lastVisitedDirectory ?? SettingsManager.shared.newTabURL
         let initialTab = Tab(initialURL: initialURL)
         tabs = [initialTab]
     }
@@ -33,8 +33,9 @@ class TabManager {
         return tabs[activeTabIndex]
     }
     
-    func createNewTab(url: URL = FileManager.default.homeDirectoryForCurrentUser, provider: FileSystemProvider? = nil) {
-        let newTab = Tab(initialURL: url, provider: provider)
+    func createNewTab(url: URL? = nil, provider: FileSystemProvider? = nil) {
+        let tabURL = url ?? SettingsManager.shared.newTabURL
+        let newTab = Tab(initialURL: tabURL, provider: provider)
         tabs.append(newTab)
         activeTabIndex = tabs.count - 1
     }

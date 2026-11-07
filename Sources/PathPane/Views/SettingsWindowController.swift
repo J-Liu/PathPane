@@ -184,6 +184,21 @@ class SettingsWindowController: NSWindowController {
         languagePopup.widthAnchor.constraint(equalToConstant: controlWidth).isActive = true
         stack.addArrangedSubview(makeRow(label: L("settings.language"), control: languagePopup))
 
+        // Row: Default New Tab Location
+        let locationPopup = NSPopUpButton()
+        for location in DefaultNewTabLocation.allCases {
+            locationPopup.addItem(withTitle: location.displayName)
+            locationPopup.lastItem?.representedObject = location
+        }
+        let currentLocation = SettingsManager.shared.defaultNewTabLocation
+        if let index = DefaultNewTabLocation.allCases.firstIndex(of: currentLocation) {
+            locationPopup.selectItem(at: index)
+        }
+        locationPopup.target = self
+        locationPopup.action = #selector(newTabLocationChanged(_:))
+        locationPopup.widthAnchor.constraint(equalToConstant: controlWidth).isActive = true
+        stack.addArrangedSubview(makeRow(label: L("settings.newtab.location"), control: locationPopup))
+
         return wrapInTopAlignedContainer(stack)
     }
 
@@ -209,6 +224,32 @@ class SettingsWindowController: NSWindowController {
     @objc private func languageChanged(_ sender: NSPopUpButton) {
         guard let selected = sender.selectedItem?.representedObject as? AppLanguage else { return }
         LocalizationManager.shared.setLanguage(selected)
+    }
+
+    @objc private func newTabLocationChanged(_ sender: NSPopUpButton) {
+        guard let selected = sender.selectedItem?.representedObject as? DefaultNewTabLocation else { return }
+
+        if selected == .custom {
+            // Show open panel
+            let panel = NSOpenPanel()
+            panel.canChooseFiles = false
+            panel.canChooseDirectories = true
+            panel.allowsMultipleSelection = false
+            panel.message = L("settings.newtab.selectfolder")
+
+            if panel.runModal() == .OK, let url = panel.url {
+                SettingsManager.shared.defaultNewTabLocation = .custom
+                SettingsManager.shared.customNewTabPath = url.path
+            } else {
+                // Cancelled, revert to previous selection
+                let currentLocation = SettingsManager.shared.defaultNewTabLocation
+                if let index = DefaultNewTabLocation.allCases.firstIndex(of: currentLocation) {
+                    sender.selectItem(at: index)
+                }
+            }
+        } else {
+            SettingsManager.shared.defaultNewTabLocation = selected
+        }
     }
 
     private func createAboutTab() -> NSView {

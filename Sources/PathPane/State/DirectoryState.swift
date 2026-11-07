@@ -3,6 +3,13 @@
 
 import Foundation
 
+// MARK: - Directory State Notifications
+
+extension Notification.Name {
+    static let directoryStateItemsDidChange = Notification.Name("DirectoryStateItemsDidChange")
+    static let directoryStateURLDidChange = Notification.Name("DirectoryStateURLDidChange")
+}
+
 // MARK: - Directory State
 
 @MainActor
@@ -11,10 +18,6 @@ class DirectoryState {
     // MARK: - Types
 
     typealias LoadCompletion = (Result<[FileItem], Error>) -> Void
-
-    // MARK: - Notification
-
-    static let itemsDidChangeNotification = Notification.Name("DirectoryStateItemsDidChange")
 
     // MARK: - Properties
 
@@ -71,7 +74,14 @@ class DirectoryState {
     ///   - addToHistory: Whether to add to navigation history (default: true)
     func load(url: URL, completion: LoadCompletion? = nil, addToHistory: Bool = true) {
         self.loadCompletion = completion
+
+        let previousURL = self.currentURL
         self.currentURL = url
+
+        // Notify if URL changed
+        if previousURL != url {
+            NotificationCenter.default.post(name: .directoryStateURLDidChange, object: self)
+        }
 
         // Add to history if requested
         if addToHistory {
@@ -89,7 +99,7 @@ class DirectoryState {
                 await MainActor.run {
                     self.items = loadedItems
                     self.loadCompletion?(.success(loadedItems))
-                    NotificationCenter.default.post(name: Self.itemsDidChangeNotification, object: self)
+                    NotificationCenter.default.post(name: .directoryStateItemsDidChange, object: self)
                 }
             } catch {
                 await MainActor.run {
@@ -122,7 +132,7 @@ class DirectoryState {
                 await MainActor.run {
                     self.items = loadedItems
                     self.loadCompletion?(.success(loadedItems))
-                    NotificationCenter.default.post(name: Self.itemsDidChangeNotification, object: self)
+                    NotificationCenter.default.post(name: .directoryStateItemsDidChange, object: self)
                 }
             } catch {
                 await MainActor.run {

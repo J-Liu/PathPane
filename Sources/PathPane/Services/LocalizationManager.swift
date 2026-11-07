@@ -213,6 +213,16 @@ extension LocalizationManager {
                 .english: "Calculating...",
                 .simplifiedChinese: "计算中...",
                 .traditionalChinese: "計算中..."
+            ],
+            "settings.newtab.location": [
+                .english: "New Tab Opens:",
+                .simplifiedChinese: "新标签页打开：",
+                .traditionalChinese: "新分頁開啟："
+            ],
+            "settings.newtab.selectfolder": [
+                .english: "Select a folder for new tabs",
+                .simplifiedChinese: "选择新标签页打开的文件夹",
+                .traditionalChinese: "選擇新分頁開啟的資料夾"
             ]
         ]
 
